@@ -8,6 +8,8 @@ import (
 
 type Process struct {
     //PID  PPID  %CPU    RSS     ELAPSED COMMAND
+    Name string
+
     pid int
     ppid int
     cpu float64
@@ -17,7 +19,7 @@ type Process struct {
 
 
     pre_start_command string
-    start_command string
+    StartCommand string
     stop_command string
     restart_command string
 
@@ -26,7 +28,7 @@ type Process struct {
     stdin string
 
     daemonize string
-    pid_file string
+    PidFile string
     working_dir string
     environment string
 

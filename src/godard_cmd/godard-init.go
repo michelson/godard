@@ -4,7 +4,7 @@ import(
   "log"
   cfg "godard_config"
   system "system"
-  app "application"
+  app "dsl"
 )
 
 func Init(config *cfg.GodardConfig){
@@ -12,9 +12,9 @@ func Init(config *cfg.GodardConfig){
   cpu, _ := system.CpuUsage(28278)
   log.Println("CPU: ", cpu)
 
-  for _, t := range(config.Processes) {
+  /*for _, t := range(config.Processes) {
     log.Println("PROCESS CONFIG:", t["pid_file"])
-  }
+  }*/
 
   app.InitApplication("myApp", config )
 

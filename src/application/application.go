@@ -5,6 +5,7 @@ import(
   cfg "godard_config"
   socket "socket"
   "log"
+  //"os"
 )
 
 type Application struct {
@@ -89,6 +90,7 @@ func (c *Application) Status(names...string)  {
 }
 
 func (c *Application) AddProcess(process *pcs.Process, group_name string ){
+  log.Println("YOU MUST ADD PROCESS TO GROUP" )
   /*group_name = group_name.to_s if group_name
 
   self.groups[group_name] ||= Group.new(group_name, :logger => self.logger.prefix_with(group_name))
@@ -113,11 +115,13 @@ func (c*Application) Load(){
 
 func (c*Application) StartListener(){
 
-  c.Sock.Run()
+  
 }    
 
 func (c*Application) StartServer(){
     
+    //os.Remove("/tmp/godard.sock") // kill previous
+
     /*def start_server
       self.kill_previous_bluepill
       ProcessJournal.kill_all_from_all_journals
@@ -153,6 +157,7 @@ func (c*Application) StartServer(){
     }
     c.Sock = sock
     c.StartListener()
+    c.Sock.Run()
 
 }
 /*
