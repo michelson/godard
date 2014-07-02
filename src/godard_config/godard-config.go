@@ -12,7 +12,10 @@ import (
 type GodardConfig struct {
 	Processes       []map[string]interface{} `json:"processes"`
 	ListenHost      string                   `json:"listen_host"`
-	ListenPort      string                   `json:"listen_port"`								
+	ListenPort      string                   `json:"listen_port"`	
+	Foreground      bool										 `json:"foreground"`
+	LogFile         string									 `json:"log_file"`	
+	BaseDir         string									 `json:"base_dir"`	
 }
 
 

@@ -4,7 +4,7 @@ import (
  cfg "godard_config"
  "log"
  app "application"
- process "system"
+ //process "system"
 )
 type AppProxy struct {
   WorkingDir  string
@@ -40,14 +40,11 @@ func (c *AppProxy) AddProcesses(t map[string]interface {} ) {
 
   //http://stackoverflow.com/questions/19021848/how-to-send-a-message-to-an-object-in-golang-send-equivalent-in-go
 
-  p := &process.Process{}
-  p.Name = t["name"].(string)
-  p.StartCommand = t["start_command"].(string)
-  p.PidFile = t["start_command"].(string)
+  process_factory := NewProcessFactory(t)
+  process := process_factory.CreateProcess(t["name"].(string))
+  //group = process_factory.attributes.delete(:group)
 
-  log.Println(p)
-  c.App.AddProcess(p, "group")
-
+  c.App.AddProcess(process, "group")
 
 }
 

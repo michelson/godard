@@ -5,7 +5,8 @@ import(
   cfg "godard_config"
   socket "socket"
   "log"
-  //"os"
+  "os"
+  "path"
 )
 
 type Application struct {
@@ -15,50 +16,59 @@ type Application struct {
   unmonitor string
   status    string*/
 
-  foreground bool
+  Foreground bool
 
-  name      string
-  logger    string
-  base_dir  string
-  socket    string
-  pid_file  string
-  kill_timeout string
-  groups    []*Group
-  work_queue string
-  pids_dir   string
-  log_file   string
-  Sock     *socket.Socket
+  Name        string
+  Logger      string
+  BaseDir     string
+  PidFile     string
+  KillTimeout string
+  Groups      map[string]*Group
+  WorkQueue   string
+  PidsDir     string
+  LogFile     string
+  Sock        *socket.Socket
 }
 
 
 func NewApplication(name string , options *cfg.GodardConfig) *Application {
   c := &Application{}
-  c.name = name
-  //c.foreground   = options["foreground"]
-  //c.log_file     = options["log_file"]
+  c.Name = name
+
+  c.Foreground   = options.Foreground
+ 
+  if len(options.LogFile) > 0 {
+    c.LogFile      = options.LogFile
+  }
+
+  if len(options.BaseDir) == 0 {
+    c.BaseDir      = os.Getenv("GODARD_BASE_DIR")
+  }else{
+    c.BaseDir      = options.BaseDir
+  }
   //c.base_dir     = options["base_dir"] //|| ENV['BLUEPILL_BASE_DIR'] || (::Process.euid != 0 ? File.join(ENV['HOME'], '.bluepill') : "/var/run/bluepill")
+  
+  c.PidFile = path.Join(c.BaseDir, "pids", c.Name, ".pid") // File.join(self.base_dir, 'pids', self.name + ".pid")
+  c.PidsDir = path.Join(c.BaseDir, "pids", c.Name) //File.join(self.base_dir, 'pids', self.name)
+  //c.kill_timeout = options.KillTimeout || 10
 
-  /*c.pid_file = File.join(self.base_dir, 'pids', self.name + ".pid")
-  c.pids_dir = File.join(self.base_dir, 'pids', self.name)
-  c.kill_timeout = options[:kill_timeout] || 10*/
-
-  c.groups = make([]*Group, 0)
+  c.Groups = make(map[string]*Group, 0)
 
   /*
   self.logger = ProcessJournal.logger = Bluepill::Logger.new(:log_file => self.log_file, :stdout => foreground?).prefix_with(self.name)
 
   self.setup_signal_traps
-  self.setup_pids_dir
 
   @mutex = Mutex.new
   */
+  c.SetupPidsDir()
 
   return c
 }
 
 
 func (c *Application) isForeground() bool {
-  return c.foreground
+  return c.Foreground
 }
 
 //s := []string{"James", "Jasmine"}
@@ -90,12 +100,25 @@ func (c *Application) Status(names...string)  {
 }
 
 func (c *Application) AddProcess(process *pcs.Process, group_name string ){
-  log.Println("YOU MUST ADD PROCESS TO GROUP" )
-  /*group_name = group_name.to_s if group_name
+  log.Println("ADDING PROCESS TO GROUP" )
 
-  self.groups[group_name] ||= Group.new(group_name, :logger => self.logger.prefix_with(group_name))
-  self.groups[group_name].add_process(process)
-  */
+  var group *Group 
+
+  if len(c.Groups) == 0 {
+    group = NewGroup(group_name) // :logger => self.logger.prefix_with(group_name))
+    c.Groups[group_name] = group
+  } else {
+    group = c.Groups[group_name]
+  }
+
+  group.AddProcess(process)
+
+  for k, _ := range(c.Groups) {
+     log.Println("GROUP: ", k )
+  }
+
+  log.Println("GROUPS COUNT: ", len(c.Groups) )
+  log.Println("GROUPS PROCESSES: ", c.Groups["group"].Processes )
 
 }
 
@@ -160,16 +183,19 @@ func (c*Application) StartServer(){
     c.Sock.Run()
 
 }
-/*
-    def add_process(process, group_name = nil)
-      group_name = group_name.to_s if group_name
-
-      self.groups[group_name] ||= Group.new(group_name, :logger => self.logger.prefix_with(group_name))
-      self.groups[group_name].add_process(process)
-    end
-*/
 
 //Private
+
+func (c *Application) SetupPidsDir(){
+      /*FileUtils.mkdir_p(self.pids_dir) unless File.exists?(self.pids_dir)
+      # we need everybody to be able to write to the pids_dir as processes managed by
+      # bluepill will be writing to this dir after they've dropped privileges
+      FileUtils.chmod(0777, self.pids_dir)*/
+      err := os.MkdirAll(c.PidsDir, 0777)
+      if err != nil {
+        log.Println("ERROR CREATING PIDS DIR" , err)
+      }
+}
 
 func (c *Application) SendToProcessOrGroup(method string , names...string){
   

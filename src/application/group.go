@@ -5,30 +5,31 @@ import(
 )
 
 type Group struct {
-  name        string 
-  processes   []*pcs.Process 
+  Name        string 
+  Processes   []*pcs.Process 
+  Options     []map[string]interface{}
 }
 
 
-func NewGroup(name string , options []map[string]interface{}) *Group {
+func NewGroup(name string) *Group {
   c := &Group{}
-  c.processes = make([]*pcs.Process , 0)
+  c.Processes = make([]*pcs.Process , 0)
   return c
 }
 
 
 func (c *Group) AddProcess(process *pcs.Process) {
-  c.processes = append(c.processes , process )
+  c.Processes = append(c.Processes , process )
 }
 
 func (c *Group) Tick() {
-  for _ , process := range(c.processes){
+  for _ , process := range(c.Processes){
     process.Tick()
   }
 }
 
 func (c *Group) DetermineInitialState() {
-  for _ , process := range(c.processes){
+  for _ , process := range(c.Processes){
     process.DetermineInitialState()
   }
 }
