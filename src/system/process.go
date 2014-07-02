@@ -3,7 +3,7 @@ package system
 import (
     //"io"
     "io/ioutil"
-    //"log"
+    "log"
 )
 
 type Process struct {
@@ -59,19 +59,19 @@ type Process struct {
     group_unmonitor_noblock string
 }
 
+func (c *Process) AddWatches(options map[string]interface{}){
 
-/*
-    # Watch related methods
-    def add_watch(name, options = {})
-      self.watches << ConditionWatch.new(name, options.merge(:logger => self.logger))
-    end
+    if len(options) > 0 {
+        log.Println("ADDING WATCHES TO PROCESS:", len(options))
+        for k, v := range options {
+            c.AddWatch(k, v)
+        }
+    }
+}
 
-    def add_trigger(name, options = {})
-      self.triggers << Trigger[name].new(self, options.merge(:logger => self.logger))
-    end
-*/
+func (c *Process) AddWatch(name string, value interface{}) {
+  log.Println("CHECKS:", name, value )
 
-func (c *Process) AddWatch(name string) {
   //self.watches << ConditionWatch.new(name, options.merge(:logger => self.logger))
 }
 
