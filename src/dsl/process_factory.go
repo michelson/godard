@@ -2,7 +2,7 @@ package dsl
 
 import (
  //cfg "godard_config"
-  "log"
+  //"log"
   proc "system"
 )
 
@@ -21,19 +21,21 @@ func NewProcessFactory(attributes map[string]interface{}) *ProcessFactory {
 }
 
 func (c *ProcessFactory) CreateProcess(name string) *proc.Process {
-  log.Println("CREATING PROCESS:", name)
-  p := &proc.Process{}
-  p.Name = c.attributes["name"].(string)
-  p.StartCommand = c.attributes["start_command"].(string)
-  p.PidFile = c.attributes["pid_file"].(string)
+  
+  //log.Println("PROXY CREATING PROCESS:", name)
 
-  //create child process here
-  c.ValidateProcess(p)
+  process := NewProcessProxy(name, c.attributes)
+  //child_process_block = @attributes.delete(:child_process_block)
+  //self.validate_process! process
+  c.ValidateProcess(process)
+  p := process.ToProcess()
+  
   return p
+
 }
 
 func (c *ProcessFactory) AssingDefaultPid() {}
 
-func (c *ProcessFactory) ValidateProcess(process *proc.Process) {}
+func (c *ProcessFactory) ValidateProcess(process *ProcessProxy) {}
 
 func (c *ProcessFactory) ValidateChildProcess(process *proc.Process) {}
