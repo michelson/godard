@@ -8,24 +8,22 @@ package condition
 */
 
   import (
-
     system "system"
-
   )
 
 type MemoryUsage struct {
   Condition
 }
 
-func NewMemoryUsage(options string) *MemoryUsage {
+func NewMemoryUsage(value bool) *MemoryUsage {
    //below = options //options[:below]
    //Condition.Below = options //options[:below]
-   c := &MemoryUsage
-   c.below := options
+   c := &MemoryUsage{}
+   c.Condition.Below = value
    return c
 }
 
-func (c *MemoryUsage) Run(pid int) int { // , include_children bool) {
+func (c *MemoryUsage) Run(pid int) (int, error) { // , include_children bool) {
   return system.MemoryUsage(pid)
 }
 

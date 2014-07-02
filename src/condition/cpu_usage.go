@@ -6,12 +6,12 @@ import (
 
 type CpuUsage struct {
   Condition
-  Below string
+  //Below string
 }
 
-func (c *CpuUsage) Run(pid string , include_children bool) int {
+func (c *CpuUsage) Run(pid int , include_children bool) (float64 , error) {
   // rss is on the 5th col
-  return system.CpuUsage(pid, include_children)
+  return system.CpuUsage(pid) //, include_children)
 }
 
 /*

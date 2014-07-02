@@ -3,7 +3,7 @@ package condition
 
 type Condition struct {
   Options map[string]string
-  Below
+  Below bool
 
   /*
     def run(pid, include_children)

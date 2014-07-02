@@ -16,7 +16,7 @@ type RunningTime struct {
 }
 
 
-func (c *RunningTime) Run(pid int) int { // , include_children bool) {
+func (c *RunningTime) Run(pid int) (int, error) { // , include_children bool) {
   return system.RunningTime(pid)
 }
 

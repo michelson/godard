@@ -1,7 +1,7 @@
 package application
 
 import(
-  pcs "system"
+  pcs "process"
 )
 
 type Group struct {

@@ -48,18 +48,6 @@ func main() {
   switch cmd {
   case "init":
     godard.Init(config)
-  /*case "load":
-    ts = godard.OpenTSFromConfig(config)
-    godard.GodardLoad(ts, config, *tripleFile, false)
-    ts.Close()
-  case "repl":
-    ts = godard.OpenTSFromConfig(config)
-    godard.GodardRepl(ts, *queryLanguage, config)
-    ts.Close()
-  case "http":
-    ts = godard.OpenTSFromConfig(config)
-    godard_http.GodardHTTP(ts, config)
-    ts.Close()*/
   default:
     fmt.Println("No command", cmd)
     flag.Usage()

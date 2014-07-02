@@ -1,9 +1,10 @@
-package system
+package process
 
 import (
     //"io"
     "io/ioutil"
     "log"
+    watcher "watcher"
 )
 
 type Process struct {
@@ -16,6 +17,8 @@ type Process struct {
     mem int
     elapsed int
     command string
+
+    Watches []*watcher.ConditionWatch
 
 
     pre_start_command string
@@ -71,8 +74,12 @@ func (c *Process) AddWatches(options map[string]interface{}){
 
 func (c *Process) AddWatch(name string, value interface{}) {
   log.Println("CHECKS:", name, value )
+  
+  v := value.(map[string]interface{})
+  //log.Println(v["every"])
 
-  //self.watches << ConditionWatch.new(name, options.merge(:logger => self.logger))
+  condition := watcher.NewConditionWatch(name, v)
+  c.Watches = append(c.Watches , condition)
 }
 
 func (c *Process) AddTrigger(name string) {

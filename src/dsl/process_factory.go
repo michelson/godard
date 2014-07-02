@@ -3,7 +3,7 @@ package dsl
 import (
  //cfg "godard_config"
   //"log"
-  proc "system"
+  proc "process"
 )
 
 

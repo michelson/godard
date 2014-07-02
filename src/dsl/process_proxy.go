@@ -1,7 +1,7 @@
 package dsl
 
 import(
-    proc "system"
+    proc "process"
     "log" 
 )
 

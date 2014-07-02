@@ -1,4 +1,9 @@
-package condition
+package watcher
+
+import(
+  "log"
+  condition "condition"
+)
 
 type HistoryValue struct {
   value string
@@ -8,14 +13,15 @@ type HistoryValue struct {
 type ConditionWatch struct {
   Logger string
   Name string
-  Fires []
+  Fires string
   Every string
-  Times []
-  empty_array []
+  Times []float64
+  empty_array []interface{}
   include_children bool
+  ProcessCondition *condition.Condition
 }
 
-func NewConditionWatch(name string, options map[string]interface{}) *ConditionWatch{
+func NewConditionWatch(name string, options interface{}) *ConditionWatch{
 
   /*
       @name = name
@@ -31,11 +37,25 @@ func NewConditionWatch(name string, options map[string]interface{}) *ConditionWa
 
       @process_condition = ProcessConditions[@name].new(options)
   */
+
+      v := options.(map[string]interface{})
+      log.Println("CREATING CONDITION", v["every"])
       c := &ConditionWatch{}
-      c.Fires = options["fires"]
-      c.Every = options["every"]
-      c.Times = options["times"]
+      
+      if _,ok := v["fires"]; ok {
+        c.Fires = v["fires"].(string)  
+      }
+      if _,ok := v["every"]; ok {
+        c.Every = v["every"].(string)
+      }
+      if _,ok := v["times"]; ok {
+        arr := make([]float64, 2)
+        arr[0] = v["times"].(float64)
+        arr[1] = v["times"].(float64)
+        c.Times = arr
+      }
       c.Name  = name
+
 
       return c
 }

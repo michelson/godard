@@ -1,7 +1,7 @@
 package application
 
 import(
-  pcs "system"
+  pcs "process"
   cfg "godard_config"
   socket "socket"
   "log"
