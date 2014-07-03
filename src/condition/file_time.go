@@ -8,7 +8,8 @@ package condition
 */
 
 type FileTime struct {
-  Condition
+  Below int
+  filename string
 }
 
 

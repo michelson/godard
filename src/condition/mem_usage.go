@@ -12,14 +12,12 @@ package condition
   )
 
 type MemoryUsage struct {
-  Condition
+  Below int
 }
 
-func NewMemoryUsage(value bool) *MemoryUsage {
-   //below = options //options[:below]
-   //Condition.Below = options //options[:below]
+func NewMemoryUsage(value int) *MemoryUsage {
    c := &MemoryUsage{}
-   c.Condition.Below = value
+   c.Below = value
    return c
 }
 
@@ -27,9 +25,10 @@ func (c *MemoryUsage) Run(pid int) (int, error) { // , include_children bool) {
   return system.MemoryUsage(pid)
 }
 
-func (c *MemoryUsage) Check(value string) {
-  // rss is on the 5th col
-  //  value.kilobytes < @below
+func (c *MemoryUsage) Check(value int) bool {
+  //  value.kilobytes < c.Below
+  assert := value < c.Below
+  return assert
 }
 
 func (c *MemoryUsage) FormatValue(value string) {

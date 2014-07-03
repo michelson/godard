@@ -12,7 +12,7 @@ import(
 )
 
 type RunningTime struct {
-  Condition
+  Below int
 }
 
 
@@ -21,6 +21,5 @@ func (c *RunningTime) Run(pid int) (int, error) { // , include_children bool) {
 }
 
 func (c *RunningTime) Check(value string) {
-  // rss is on the 5th col
-  // value.kilobytes < @below
+  // value.kilobytes < @Below
 }
