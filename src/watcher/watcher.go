@@ -14,11 +14,11 @@ type HistoryValue struct {
 type ConditionWatch struct {
   Logger string
   Name string
-  Fires string
+  Fires []string
   Every float64
   Times []float64
   empty_array []interface{}
-  LastRanAt int64
+  LastRanAt float64
   include_children bool
   ProcessCondition []condition.ProcessCondition //*condition.Condition
   History []*HistoryValue
@@ -46,7 +46,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       c := &ConditionWatch{}
       
       if _,ok := v["fires"]; ok {
-        c.Fires = v["fires"].(string)  
+        c.Fires = append( c.Fires, v["fires"].(string) ) 
       }
       if _,ok := v["every"]; ok {
         c.Every = v["every"].(float64)
@@ -73,10 +73,12 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       }
 
       c.ProcessCondition = conditions
+
+      c.LastRanAt = 0
       return c
 }
 
-func (c*ConditionWatch) Run(pid int, tick_number int64) string {
+func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
     /*
     def run(pid, tick_number = Time.now.to_i)
       if @last_ran_at.nil? || (@last_ran_at + @every) <= tick_number
@@ -94,7 +96,9 @@ func (c*ConditionWatch) Run(pid int, tick_number int64) string {
 
     log.Println("WTF!!!!:" , c.LastRanAt , c.LastRanAt , c.Every) 
 
-      //if c.LastRanAt == nil || (c.LastRanAt + c.Every) <= tick_number {
+      fires := make([]string, 0)
+
+      if c.LastRanAt == 0 || (c.LastRanAt + c.Every) <= tick_number {
         
         c.LastRanAt = tick_number
 
@@ -112,12 +116,14 @@ func (c*ConditionWatch) Run(pid int, tick_number int64) string {
         history.Value    = formatted
         history.Critical = checked
         c.History = append( c.History, history )
-
+        
         if c.isFired(){
-          return c.Fires 
-        }
-        return c.Fires
-      //}
+          fires = c.Fires 
+        }        
+      }
+
+      return fires
+
 }
 
 func (c*ConditionWatch) ClearHistory() {
@@ -137,7 +143,7 @@ func (c*ConditionWatch) isFired() bool {
   return assert
 }
 
-func (c*ConditionWatch) to_s() string {
+func (c*ConditionWatch) ToS() string {
   /* data = @history.collect {|v|  "#{v.value}#{'*' unless v.critical}"}.join(", ")
    "#{@name}: [#{data}]\n"
   */
