@@ -219,7 +219,7 @@ func (c *Process) Tick()  {
 */
 
 func (c *Process) isUp() bool{
-	return c.state == "up"
+	return c.state_machine.Current() == "up"
 }
 
 func (c *Process) Dispatch(event string, reason string) {
@@ -320,7 +320,6 @@ func (c *Process) RunWatches() {
 
 }
 
-
 func (c *Process) DetermineInitialState(){
 /*
       if self.process_running?(true)
@@ -331,13 +330,13 @@ func (c *Process) DetermineInitialState(){
 
 */
    if c.isProcessRunning(true){
-   		c.state = "up"
+   		c.state_machine.SetCurrent("up")
    	}else{
    		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
    		if c.auto_start == false {
-   			c.state = "unmonitored"
+   			c.state_machine.SetCurrent("unmonitored")
    		}else{
-   			c.state = "down"
+   			c.state_machine.SetCurrent("down")
    		}
    	}
 
