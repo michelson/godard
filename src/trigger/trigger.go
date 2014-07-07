@@ -1,16 +1,21 @@
 package trigger
 
+import(
+  process "process"
+)
+
 type Trigger struct {
   Process string
   Logger string
   //mutex 
+  Name string
   ScheduledEvents []string
 
 }
 
-func NewTrigger(process string, options map[string]string) *Trigger {
+func NewTrigger(process process.Process, options map[string]string) *Trigger {
   c := &Trigger{}
-
+  c.Name = options["name"]
   c.Process = process
   c.Logger = options["logger"]
   c.ScheduledEvents = make([]string, 0)

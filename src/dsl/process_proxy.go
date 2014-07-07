@@ -47,12 +47,12 @@ func (c*ProcessProxy) monitor_children(&child_process_block) {
 */
 
 func (c*ProcessProxy) ToProcess() *proc.Process {
-  p := &proc.Process{}
+  /*p := &proc.Process{}
   p.Name = c.Attributes["name"].(string)
   p.StartCommand = c.Attributes["start_command"].(string)
   p.PidFile = c.Attributes["pid_file"].(string)
-  p.AddWatches(c.Watches)
-  log.Println("CREATING PROCESS:", p.Name)
+  p.AddWatches(c.Watches)*/
+  p := proc.NewProcess(c.Attributes["name"].(string), c.Watches , c.Attributes)
   return p
 }
 

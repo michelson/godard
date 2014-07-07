@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	watcher "watcher"
-	trigger "trigger"
+	//trigger "trigger"
 	time "time"
 	"strings"
 	"sync"
@@ -25,8 +25,8 @@ type Process struct {
 	elapsed int
 	command string
 
-	Watches []*watcher.ConditionWatch
-	Triggers []*trigger.Trigger
+	Watches  []*watcher.ConditionWatch
+	Triggers []*Trigger
 	Children []*Process
 
 	pid_file string
@@ -92,25 +92,37 @@ func check(e error) {
 
 func NewProcess(process_name string, checks map[string]interface{}, options map[string]interface{}) *Process {
 	c := &Process{}
-
 	c.Name = process_name
+  c.StartCommand = options["start_command"].(string)
+  c.PidFile = options["pid_file"].(string)
+  //p.AddWatches(c.Watches)
 	c.event_mutex = &sync.Mutex{}
-	// @watches = []
-	// @triggers = []
-	// @children = []
+	c.Watches = make([]*watcher.ConditionWatch, 0)
+	c.Triggers = make([]*Trigger, 0)
+	c.Children = make([]*Process, 0)
 	// @threads = []
 	// @statistics = ProcessStatistics.new
 	// @actual_pid = options[:actual_pid]
 	// self.logger = options[:logger]
 
-	/*  checks.each do |name, opts|
-		if Trigger[name]
-		  self.add_trigger(name, opts)
-		else
-		  self.add_watch(name, opts)
-		end
-	  end
-	*/
+
+	  for check_name , value := range(checks){
+	  	trigger_exists := false
+	  	for _, v := range(c.Triggers){
+	  		if v.Name == check_name{
+	  			trigger_exists = true
+	  			break
+	  		}
+	  	}
+	  	if trigger_exists {
+				log.Println("add trigger here:", check_name, value)
+				c.AddTrigger(check_name, value)
+  		}else{
+  			//log.Println("add watch here:", check_name, value)
+  			c.AddWatch(check_name, value)
+  		}
+	  	
+	  }
 
 	  // These defaults are overriden below if it's configured to be something else.
 	  c.monitor_children =  false
@@ -182,10 +194,12 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	    },
 	)
 
+	log.Println("CREATING PROCESS:", c.Name)
+
 	return c
 }
 
-func (c *Process) Tick()  {
+func (c *Process) Tick(){
 
 	if c.isSkippingTicks(){
 
@@ -195,8 +209,16 @@ func (c *Process) Tick()  {
 		
 		// Deal with thread cleanup here since the stopping state isn't used
     //clean_threads if self.unmonitored?
-
+    if c.state_machine.Current() == "unmonitored"{
+			c.CleanThreads()
+    }
     // run state machine transitions
+    if c.isProcessRunning(false){
+    	c.state_machine.Event("tick_up")	
+    }else{
+    	c.state_machine.Event("tick_down")	
+    }
+    
 
 		if c.isUp() {
 			c.RunWatches()
@@ -262,8 +284,12 @@ func (c *Process) NotifyTriggers(transition string) {
 }
 
 
-func (c *Process) AddTrigger(name string) {
+func (c *Process) AddTrigger(name string, value interface{}) {
    //   self.triggers << Trigger[name].new(self, options.merge(:logger => self.logger))
+	v := value.(map[string]interface{})
+	//m["name"] = name
+	//m["logger"] = c.logger
+	c.Triggers = append(c.Triggers, NewTrigger(c , v))
 }
 
 func (c *Process) AddWatches(options map[string]interface{}){
@@ -436,13 +462,6 @@ func (c *Process) PreStartProcess(){
 			log.Println("Pre start command execution returned non-zero exit code:")
 			log.Println(result)
 		}
-		/*
-			result = System.execute_blocking(pre_start_command, self.system_command_options)
-      unless result[:exit_code].zero?
-        logger.warning "Pre start command execution returned non-zero exit code:"
-        logger.warning result.inspect
-      end
-		*/
 	}
 }
 //NOK
@@ -532,7 +551,6 @@ func (c *Process) RestartProcess(){
 func (c *Process) CleanThreads(){
 	//@threads.each { |t| t.kill }
   //@threads.clear
-
 }
 
 func (c *Process) isDaemonized() bool{
@@ -698,4 +716,75 @@ func (c *Process) WithTimeout(secs int, next_state string) { //secs int, next_st
     //Timeout.timeout(secs.to_f, &blk)
 
     c.Dispatch(next_state, "")
+}
+
+
+
+
+
+
+//PROCESS
+
+
+type Trigger struct {
+  Process *Process
+  Logger string
+  //mutex 
+  Name string
+  ScheduledEvents []string
+
+}
+
+func NewTrigger(process *Process, options map[string]interface{}) *Trigger {
+  c := &Trigger{}
+  c.Name = options["name"].(string)
+  c.Process = process
+  //c.Logger = options["logger"]
+  c.ScheduledEvents = make([]string, 0)
+  return c
+}
+
+func (c*Trigger) Reset(){
+  //self.cancel_all_events
+
+}
+
+func (c*Trigger) Notify(transition string){
+  //raise "Implement in subclass"
+}
+
+func (c*Trigger) Dispatch(){
+  //self.process.dispatch!(event, self.class.name.split("::").last)
+
+}
+
+func (c*Trigger) ScheduleEvent(){
+  /*
+
+      # TODO: maybe wrap this in a ScheduledEvent class with methods like cancel
+      thread = Thread.new(self) do |trigger|
+        begin
+          sleep delay.to_f
+          trigger.dispatch!(event)
+          trigger.mutex.synchronize do
+            trigger.scheduled_events.delete_if { |_, thread| thread == Thread.current }
+          end
+        rescue StandardError => e
+          trigger.logger.err(e)
+          trigger.logger.err(e.backtrace.join("\n"))
+        end
+      end
+
+      self.scheduled_events.push([event, thread])
+
+  */
+}
+
+func (c*Trigger) CancellAllEvents(){
+  /*
+     self.logger.info "Canceling all scheduled events"
+      self.mutex.synchronize do
+        self.scheduled_events.each {|_, thread| thread.kill}
+      end
+  */
 }
