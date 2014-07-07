@@ -5,10 +5,13 @@ package system
 import (
     "bytes"
     "log"
-    "os/exec"
     "strconv"
     "strings"
     "regexp"
+    "io"
+    "os"
+    "os/exec"
+    "syscall"
 )
 
 func PsAxu() ([]map[string]interface{} , error) {
@@ -151,4 +154,157 @@ func ParseElapsedTime(str string) int {
 
     return int(minutes)
 }
+
+func DeleteIfExists(filename string) {
+/*
+  tries = 0
+
+  begin
+    File.unlink(filename) if filename && File.exists?(filename)
+  rescue IOError, Errno::ENOENT
+  rescue Errno::EACCES
+    retry if (tries += 1) < 3
+    $stderr.puts("Warning: permission denied trying to delete #{filename}")
+  end
+*/
+}
+
+func checkError(err error) {
+    if err != nil {
+        log.Fatalf("Error: %s", err)
+    }
+}
+
+//http://stackoverflow.com/questions/10781516/how-to-pipe-several-commands
+//http://stackoverflow.com/questions/10385551/get-exit-code-go
+func ExecuteBlocking(command string , options map[string]interface{}) map[string]int64{
+    c1 := exec.Command(command)
+    
+
+    r, w := io.Pipe() 
+    c1.Stdout = w
+    c1.Stdin = r
+
+    var b2 bytes.Buffer
+    c1.Stdout = &b2
+
+    var b1 bytes.Buffer
+    c1.Stdin = &b1
+
+    c1.Start()
+    c1.Wait()
+
+    m := make(map[string]int64, 0)
+
+    if err := c1.Wait(); err != nil {
+        if exiterr, ok := err.(*exec.ExitError); ok {
+            // The program has exited with an exit code != 0
+
+            // This works on both Unix and Windows. Although package
+            // syscall is generally platform dependent, WaitStatus is
+            // defined for both Unix and Windows and in both cases has
+            // an ExitStatus() method with the same signature.
+            if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+              log.Printf("Exit Status: %d", status.ExitStatus())
+              var i64 int64
+              i64 = int64(status.ExitStatus())
+              m["exit_status"] = i64
+            }
+        } else {
+           m["exit_status"] = 0 //status.ExitStatus()
+           // log.Fatalf("cmd.Wait: %v", err)
+        }
+    }
+
+    w.Close()
+    //so,  := io.Copy(os.Stdout, &b2)
+    m["stdout"], _ = io.Copy(os.Stdout, &b2)
+    m["stderr"], _ = io.Copy(os.Stderr, &b1)
+    return m
+}
+/*
+    # Returns the stdout, stderr and exit code of the cmd
+    def execute_blocking(cmd, options = {})
+      rd, wr = IO.pipe
+
+      if child = Daemonize.safefork
+        # parent
+        wr.close
+
+        cmd_status = rd.read
+        rd.close
+
+        ::Process.waitpid(child)
+
+        cmd_status.strip != '' ? Marshal.load(cmd_status) : {:exit_code => 0, :stdout => '', :stderr => ''}
+      else
+        # child
+        rd.close
+
+        # create a child in which we can override the stdin, stdout and stderr
+        cmd_out_read, cmd_out_write = IO.pipe
+        cmd_err_read, cmd_err_write = IO.pipe
+
+        pid = fork {
+          begin
+            # grandchild
+            drop_privileges(options[:uid], options[:gid], options[:supplementary_groups])
+
+            Dir.chdir(ENV["PWD"] = options[:working_dir].to_s) if options[:working_dir]
+            options[:environment].each { |key, value| ENV[key.to_s] = value.to_s } if options[:environment]
+
+            # close unused fds so ancestors wont hang. This line is the only reason we are not
+            # using something like popen3. If this fd is not closed, the .read call on the parent
+            # will never return because "wr" would still be open in the "exec"-ed cmd
+            wr.close
+
+            # we do not care about stdin of cmd
+            STDIN.reopen("/dev/null")
+
+            # point stdout of cmd to somewhere we can read
+            cmd_out_read.close
+            STDOUT.reopen(cmd_out_write)
+            cmd_out_write.close
+
+            # same thing for stderr
+            cmd_err_read.close
+            STDERR.reopen(cmd_err_write)
+            cmd_err_write.close
+
+            # finally, replace grandchild with cmd
+            ::Kernel.exec(*Shellwords.shellwords(cmd))
+          rescue Exception => e
+            (cmd_err_write.closed? ? STDERR : cmd_err_write).puts "Exception in grandchild: #{e.to_s}."
+            (cmd_err_write.closed? ? STDERR : cmd_err_write).puts e.backtrace
+            exit 1
+          end
+        }
+
+        # we do not use these ends of the pipes in the child
+        cmd_out_write.close
+        cmd_err_write.close
+
+        # wait for the cmd to finish executing and acknowledge it's death
+        ::Process.waitpid(pid)
+
+        # collect stdout, stderr and exitcode
+        result = {
+          :stdout => cmd_out_read.read,
+          :stderr => cmd_err_read.read,
+          :exit_code => $?.exitstatus
+        }
+
+        # We're done with these ends of the pipes as well
+        cmd_out_read.close
+        cmd_err_read.close
+
+        # Time to tell the parent about what went down
+        wr.write Marshal.dump(result)
+        wr.close
+
+        ::Process.exit!
+      end
+    end
+    */
+
 

@@ -10,9 +10,11 @@ export GOBIN=
 
 function deps {
   echo "Fetching dependencies to $SCRIPTPATH..."
-  printf "                  (00/15)\r"
+  printf "                  (00/01)\r"
     go get -u -t github.com/barakmich/glog
-  printf "################  (15/15)\r"
+  printf "                  (00/02)"
+    go get -u -t github.com/looplab/fsm
+  printf "################  (02/02)\r"
   printf "\n"
 }
 

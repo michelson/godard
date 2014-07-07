@@ -105,12 +105,12 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
         var value float64
         var formatted string
         var checked bool
+        
         for _, cond := range c.ProcessCondition {
           value, _ = cond.Run(pid, false) 
           formatted = cond.FormatValue(value)   
           checked, _ = cond.Check(value, false)   
         }
-
 
         history         := &HistoryValue{}
         history.Value    = formatted

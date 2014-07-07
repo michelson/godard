@@ -1,16 +1,16 @@
 package godard
 
 import(
-  "log"
+  //"log"
   cfg "godard_config"
-  system "system"
+  //system "system"
   app "dsl"
 )
 
 func Init(config *cfg.GodardConfig){
 
-  cpu, _ := system.CpuUsage(28278)
-  log.Println("CPU: ", cpu)
+  /*cpu, _ := system.CpuUsage(28278)
+  log.Println("CPU: ", cpu)*/
 
   /*for _, t := range(config.Processes) {
     log.Println("PROCESS CONFIG:", t["pid_file"])
