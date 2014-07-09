@@ -15,13 +15,11 @@ import (
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
 
 func Usage() {
-  fmt.Println("Godard is a graph store and graph query layer.\n")
+  fmt.Println("Godard is monitoring tool.\n")
   fmt.Println("Usage:")
   fmt.Println("  godard COMMAND [flags]\n")
   fmt.Println("Commands:")
-  fmt.Println("  init\tCreate an empty database.")
-  //fmt.Println("  http\tServe an HTTP endpoint on the given host and port.")
-  //fmt.Println("  repl\tDrop into a REPL of the given query language.")
+  fmt.Println("  init\tStart server , load config.")
   fmt.Println("\nFlags:")
   flag.Parse()
   flag.PrintDefaults()
@@ -39,17 +37,28 @@ func main() {
   newargs = append(newargs, os.Args[2:]...)
   os.Args = newargs
   flag.Parse()
-  //var ts graph.TripleStore
+
   config := cfg.ParseConfigFromFlagsAndFile(*configFile)
+  
   if os.Getenv("GOMAXPROCS") == "" {
     runtime.GOMAXPROCS(runtime.NumCPU())
-  } else {
   }
+
   switch cmd {
-  case "init":
-    godard.Init(config)
-  default:
-    fmt.Println("No command", cmd)
-    flag.Usage()
+    case "init":
+      godard.Init(config)
+    case "status":
+      fmt.Println("CURRENT STATUS", cmd)
+    case "start":
+      fmt.Println("STARTING CMD", cmd)
+    case "stop":
+      fmt.Println("STOP PROCESS", cmd)
+    case "quit":
+      fmt.Println("TERMINATING QUIT", cmd)
+    case "log":
+      fmt.Println("INIT LOGGING", cmd)
+    default:
+      fmt.Println("No command", cmd)
+      flag.Usage()
   }
 }

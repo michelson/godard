@@ -3,8 +3,8 @@ package godard_config
 
 import (
 	"encoding/json"
-	"flag"
-	"github.com/barakmich/glog"
+	//"flag"
+	//"github.com/barakmich/glog"
 	"os"
 	"log"
 )
@@ -18,10 +18,6 @@ type GodardConfig struct {
 	BaseDir         string									 `json:"base_dir"`	
 }
 
-
-var host = flag.String("host", "0.0.0.0", "Host to listen on (defaults to all).")
-var port = flag.String("port", "64210", "Port to listen on.")
-
 func ParseConfigFromFile(filename string) *GodardConfig {
 	config := &GodardConfig{}
 	
@@ -31,7 +27,7 @@ func ParseConfigFromFile(filename string) *GodardConfig {
 	f, err := os.Open(filename)
 	
 	if err != nil {
-		glog.Fatalln("Couldn't open config file", filename)
+		log.Fatalln("Couldn't open config file", filename)
 	}
 
 	defer f.Close()
@@ -39,7 +35,7 @@ func ParseConfigFromFile(filename string) *GodardConfig {
 	err = json.NewDecoder(f).Decode(config)
 	
 	if err != nil {
-		glog.Fatalln("Couldn't read config file:", err)
+		log.Fatalln("Couldn't read config file:", err)
 	}
 	
 	return config
@@ -53,7 +49,7 @@ func ParseConfigFromFlagsAndFile(fileFlag string) *GodardConfig {
 	
 	if fileFlag != "" {
 		if _, err := os.Stat(fileFlag); os.IsNotExist(err) {
-			glog.Fatalln("Cannot find specified configuration file", fileFlag, ", aborting.")
+			log.Fatalln("Cannot find specified configuration file", fileFlag, ", aborting.")
 		} else {
 			trueFilename = fileFlag
 		}
@@ -68,20 +64,10 @@ func ParseConfigFromFlagsAndFile(fileFlag string) *GodardConfig {
 	}
 	
 	if trueFilename == "" {
-		glog.Infoln("Couldn't find a config file in either $GODARD_CFG or /etc/godard.cfg. Going by flag defaults only.")
+		log.Println("Couldn't find a config file in either $GODARD_CFG or /etc/godard.cfg. Going by flag defaults only.")
 	}
 	
 	config := ParseConfigFromFile(trueFilename)
-
-	if config.ListenHost == "" {
-		config.ListenHost = *host
-	}
-
-	if config.ListenPort == "" {
-		config.ListenPort = *port
-	}
-
-	//config.ReadOnly = config.ReadOnly || *readOnly
 
 	return config
 }

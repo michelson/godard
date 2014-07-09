@@ -11,8 +11,29 @@ import (
     "io"
     "os"
     "os/exec"
+    //"os/signal"
     "syscall"
 )
+
+
+func PidAlive(pid int) bool{
+  err := syscall.Kill(pid, syscall.SIGHUP)
+  if err != nil {
+    return false
+  }else{
+    return true
+  }
+ /*   def pid_alive?(pid)
+      begin
+        ::Process.kill(0, pid)
+        true
+      rescue Errno::EPERM # no permission, but it is definitely alive
+        true
+      rescue Errno::ESRCH
+        false
+      end
+    end */
+}
 
 func PsAxu() ([]map[string]interface{} , error) {
     cmd := exec.Command("ps", "axo", "pid,ppid,pcpu,rss,etime,command")
@@ -55,7 +76,6 @@ func PsAxu() ([]map[string]interface{} , error) {
       if err!=nil {
           continue
       }
-
 
       d := ParseElapsedTime(string(ft[4]))
 
@@ -155,7 +175,23 @@ func ParseElapsedTime(str string) int {
     return int(minutes)
 }
 
+func file_exists(path string) (bool, error) {
+    _, err := os.Stat(path)
+    if err == nil { return true, nil }
+    if os.IsNotExist(err) { return false, nil }
+    return false, err
+}
+
 func DeleteIfExists(filename string) {
+
+  exists , _ := file_exists(filename)
+
+  if exists {
+    err := os.Remove(filename)
+    if err != nil {
+      log.Fatal( "Warning: permission denied trying to delete #{filename}")
+    }
+  }
 /*
   tries = 0
 
@@ -167,6 +203,7 @@ func DeleteIfExists(filename string) {
     $stderr.puts("Warning: permission denied trying to delete #{filename}")
   end
 */
+
 }
 
 func checkError(err error) {
@@ -307,4 +344,17 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
     end
     */
 
-
+func IsPidAlive(pid int) bool{
+  res := false
+  process, err := os.FindProcess(int(pid))
+  if err != nil {
+    log.Printf("Failed to find process: %s\n", err)
+  } else {
+    err := process.Signal(syscall.Signal(0))
+    log.Printf("process.Signal on pid %d returned: %v\n", pid, err)
+    if err == nil {
+      res = true
+    }
+  }
+  return res
+}

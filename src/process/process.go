@@ -136,6 +136,8 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	  c.group_stop_noblock = true
 	  c.group_restart_noblock = true
 	  c.group_unmonitor_noblock = true
+
+	  c.auto_start = true
 	/*
 	  CONFIGURABLE_ATTRIBUTES.each do |attribute_name|
 		self.send("#{attribute_name}=", options[attribute_name]) if options.has_key?(attribute_name)
@@ -173,19 +175,19 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 						}
 					},
 					"after_run": func(e *fsm.Event) {
-						if c.state_machine.Current() != "starting" {
+						if c.state_machine.Current() == "starting" {
 							c.StartProcess()
 						}
 
-						if c.state_machine.Current() != "stopping" {
+						if c.state_machine.Current() == "stopping" {
 							c.StopProcess()
 						}
 
-						if c.state_machine.Current() != "stopping" {
+						if c.state_machine.Current() == "stopping" {
 							c.StopProcess()
 						}
 
-						if c.state_machine.Current() != "restarting" {
+						if c.state_machine.Current() == "restarting" {
 							c.RestartProcess()
 						}
 
@@ -202,7 +204,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 func (c *Process) Tick(){
 
 	if c.isSkippingTicks(){
-
+		log.Println("SKIPPING TICKS")
 	}else{
 		//c.skip_ticks_until = nil
 		c.process_running = false
@@ -214,11 +216,14 @@ func (c *Process) Tick(){
     }
     // run state machine transitions
     if c.isProcessRunning(false){
+    	log.Println("TICKS UP")
     	c.state_machine.Event("tick_up")	
     }else{
+    	log.Println("TICKS DOWN")
     	c.state_machine.Event("tick_down")	
     }
     
+    log.Println("CURRENT STATE:", c.state_machine.Current())
 
 		if c.isUp() {
 			c.RunWatches()
@@ -355,7 +360,7 @@ func (c *Process) DetermineInitialState(){
       end
 
 */
-   if c.isProcessRunning(true){
+   	if c.isProcessRunning(true){
    		c.state_machine.SetCurrent("up")
    	}else{
    		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
@@ -366,7 +371,10 @@ func (c *Process) DetermineInitialState(){
    		}
    	}
 
+   	log.Println("DETERMINE INITAL STATE", c.state_machine.Current())
+
 }
+
 
 // System Process Methods
 

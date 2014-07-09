@@ -2,6 +2,7 @@ package application
 
 import(
   pcs "process"
+  "log"
 )
 
 type Group struct {
@@ -24,6 +25,7 @@ func (c *Group) AddProcess(process *pcs.Process) {
 
 func (c *Group) Tick() {
   for _ , process := range(c.Processes){
+    log.Println("tick process")
     process.Tick()
   }
 }

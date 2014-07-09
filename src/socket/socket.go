@@ -8,9 +8,10 @@ import (
   "syscall"
 )
 
+const Timeout = 60 // Used for client commands
+const MaxAttempts = 5
+
 type Socket struct{
-    //TIMEOUT = 60 # Used for client commands
-    //MAX_ATTEMPTS = 5
     Listener net.Listener
 }
 
@@ -74,6 +75,36 @@ func (c *Socket) EchoServer(conn net.Conn) {
           panic(err)
       }
   }
+}
+
+func ClientCommand(base_dir string, name string , command string) (string, error){
+  
+
+  /*
+    def client_command(base_dir, name, command)
+      res = nil
+      MAX_ATTEMPTS.times do |current_attempt|
+        begin
+          client(base_dir, name) do |socket|
+            Timeout.timeout(TIMEOUT) do
+              socket.puts command
+              res = Marshal.load(socket.read)
+            end
+          end
+          break
+        rescue EOFError, Timeout::Error
+          if current_attempt == MAX_ATTEMPTS - 1
+            abort("Socket Timeout: Server may not be responding")
+          end
+          puts "Retry #{current_attempt + 1} of #{MAX_ATTEMPTS}"
+        end
+      end
+      res
+    end
+  */
+    res := "aa"
+
+    return res, nil
 }
 
 /*

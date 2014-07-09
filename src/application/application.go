@@ -173,6 +173,17 @@ func (c*Application) StartServer(){
 
     //ss = socket.NewSocket()
     //socket.NewSocket.server(self.base_dir, self.name)
+
+
+    for _, g := range(c.Groups) {
+      g.DetermineInitialState()
+    }
+
+    for k, g := range(c.Groups) {
+      log.Println("GROUP: ", g,  k )
+      g.Tick()
+    }
+
     sock , err := socket.NewSocket()
     
     if err != nil {
@@ -181,6 +192,8 @@ func (c*Application) StartServer(){
     c.Sock = sock
     c.StartListener()
     c.Sock.Run()
+
+
 
 }
 
