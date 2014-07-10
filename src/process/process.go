@@ -28,6 +28,7 @@ type Process struct {
 	Watches  []*watcher.ConditionWatch
 	Triggers []*Trigger
 	Children []*Process
+  Statistics *ProcessStatistics
 
 	pid_file string
 	pre_start_command string
@@ -102,6 +103,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	c.Children = make([]*Process, 0)
 	// @threads = []
 	// @statistics = ProcessStatistics.new
+  c.Statistics = NewProcessStatistics()
 	// @actual_pid = options[:actual_pid]
 	// self.logger = options[:logger]
 

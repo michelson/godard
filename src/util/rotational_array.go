@@ -2,18 +2,18 @@ package util
 
 type RotationalArray struct {
   Capacity int
-  Array []int
+  Array [][]string
 
 }
 
 func NewRotationalArray(size int) *RotationalArray {
   c := &RotationalArray{}
   c.Capacity = size
-  c.Array = c.Array[0 : size]
+  c.Array = make([][]string, size)
   return c
 }
 
-func (c*RotationalArray) Push(value int) {
+func (c*RotationalArray) Push(value []string) {
   c.Array = append(c.Array, value)
   if len(c.Array)+1 > c.Capacity {
     c.Array = c.Array[1 : c.Capacity+1]    

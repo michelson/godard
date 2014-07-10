@@ -74,6 +74,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
 
       c.ProcessCondition = conditions
 
+      c.ClearHistory()
       c.LastRanAt = 0
       return c
 }
@@ -112,10 +113,7 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
           checked, _ = cond.Check(value, false)   
         }
 
-        history         := &HistoryValue{}
-        history.Value    = formatted
-        history.Critical = checked
-        c.History = append( c.History, history )
+        c.PushHistory( &HistoryValue{formatted, checked} )
         
         if c.isFired(){
           fires = c.Fires 
@@ -128,7 +126,17 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
 
 func (c*ConditionWatch) ClearHistory() {
   // @history = Util::RotationalArray.new(@times.last)
-  //c.History = util.NewRotationalArray(c.Times) 
+  var capacity = int(c.Times[1])
+  arr := make([]*HistoryValue , capacity)
+  c.History = arr
+}
+//extracted from utils rotational arr
+func (c*ConditionWatch) PushHistory(value *HistoryValue) {
+  c.History = append(c.History, value)
+  var capacity = int(c.Times[1])
+  if len(c.History)+1 > capacity {
+    c.History = c.History[1 : capacity+1]    
+  }
 }
 
 func (c*ConditionWatch) isFired() bool {
