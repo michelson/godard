@@ -46,6 +46,7 @@ func NewApplication(name string , options *cfg.GodardConfig) *Application {
   }else{
     c.BaseDir      = options.BaseDir
   }
+  log.Println("APP BASE DIR:", c.BaseDir)
   //c.base_dir     = options["base_dir"] //|| ENV['BLUEPILL_BASE_DIR'] || (::Process.euid != 0 ? File.join(ENV['HOME'], '.bluepill') : "/var/run/bluepill")
   
   c.PidFile = path.Join(c.BaseDir, "pids", c.Name, ".pid") // File.join(self.base_dir, 'pids', self.name + ".pid")
@@ -184,7 +185,7 @@ func (c*Application) StartServer(){
       g.Tick()
     }
 
-    sock , err := socket.NewSocket()
+    sock , err := socket.NewSocket(c.BaseDir, c.Name)
     
     if err != nil {
       log.Println(err)

@@ -29,7 +29,7 @@ function build {
 #}
 
 function run {
-  go build godard ; ./godard init --config=./godard.cfg
+  go build godard ; ./godard load --config=./godard.cfg
 }
 
 $1

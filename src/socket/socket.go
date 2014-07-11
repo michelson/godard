@@ -6,6 +6,7 @@ import (
   "os"
   "os/signal"
   "syscall"
+  "path"
 )
 
 const Timeout = 60 // Used for client commands
@@ -16,9 +17,10 @@ type Socket struct{
 }
 
 
-func NewSocket() (*Socket, error) {
+func NewSocket(base_dir string , name string) (*Socket, error) {
   // Create the socket to listen on:
-    l, err := net.Listen("unix", "/tmp/godard.sock")
+    log.Println("SOCKET PATH ", base_dir)
+    l, err := net.Listen("unix", SocketPath(base_dir , name))
     c := &Socket{}
     if err != nil {
       log.Fatal(err)
@@ -30,7 +32,6 @@ func NewSocket() (*Socket, error) {
 
     return c, err
 }
-
 
 func (c *Socket) Run() {
  
@@ -58,7 +59,6 @@ func (c *Socket) Run() {
   }
 
 }
-
 
 func (c *Socket) EchoServer(conn net.Conn) {
   for {
@@ -105,6 +105,11 @@ func ClientCommand(base_dir string, name string , command string) (string, error
     res := "aa"
 
     return res, nil
+}
+
+func SocketPath(base_dir string , name string) string{
+  s := path.Join(base_dir , "sock", name + ".sock")
+  return s
 }
 
 /*
