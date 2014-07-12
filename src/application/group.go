@@ -3,6 +3,8 @@ package application
 import(
   pcs "process"
   "log"
+  "strings"
+  "reflect"
 )
 
 type Group struct {
@@ -39,38 +41,51 @@ func (c *Group) DetermineInitialState() {
 
 //[:start, :unmonitor, :stop, :restart]
 func (c *Group) Start(process_name string) {
+  log.Println("Start Group")
 }
 
 func (c *Group) UnMonitor(process_name string) {
+  log.Println("UnMonitor Group")
 }
 
 func (c *Group) Stop(process_name string) {
+  log.Println("Stop Group")
 }
 
 func (c *Group) Restart(process_name string) {
+  log.Println("Restart Group")
 }
 
-/*
-    def #{event}(process_name = nil)
-      threads = []
-      affected = []
-      self.processes.each do |process|
-        next if process_name && process_name != process.name
-        affected << [self.name, process.name].join(":")
-        noblock = process.group_#{event}_noblock
-        if noblock
-          self.logger.debug("Command #{event} running in non-blocking mode.")
-          threads << Thread.new { process.handle_user_command("#{event}") }
-        else
-          self.logger.debug("Command #{event} running in blocking mode.")
-          thread = Thread.new { process.handle_user_command("#{event}") }
-          thread.join
-        end
-      end
-      threads.each { |t| t.join } unless threads.nil?
-      affected
-    end
-*/
+func (c*Group) SendMethod(method string , process_name string){
+  log.Println("SEND",method,"METHOD TO" , process_name, " IS GOING TO BE SO COOL")
+  log.Println(c.Processes)
+  //threads = []
+  var affected []string 
+  for _ , process := range(c.Processes){
+    if len(process_name) > 0 && process_name != process.Name{
+      continue  
+    }
+
+    s := []string{c.Name , process.Name}
+    affected = append(affected, strings.Join(s, ":") )
+    v := reflect.ValueOf(*process)
+    noblock := v.FieldByName("Group_"+method+"_noblock")
+    
+    if noblock {
+      //noblock.Interface().(bool) // reflection method value
+      log.Println("Command", method ," running in non-blocking mode.")
+      //threads << Thread.new { process.handle_user_command("#{event}") }
+    }else{
+      log.Println("Command", method ," running in blocking mode.")
+      //thread = Thread.new { process.handle_user_command("#{event}") }
+      //thread.join
+    }
+  }
+
+  // threads.each { |t| t.join } unless threads.nil?
+  // affected 
+  log.Println("SOME AFFECTED ARE:" , affected)
+}
 
 func (c *Group) Status(process_name string) {
   

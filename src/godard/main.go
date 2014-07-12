@@ -99,20 +99,25 @@ func main() {
   controller_opts["log_file"] = *LogFile
   controller := NewController( controller_opts )
 
-  fmt.Println(controller_opts)
+  //fmt.Println(controller_opts)
   
   basefile, _ := osext.Executable()
   fmt.Println("CMD", cmd, "ARGS", os.Args , "CONTROLLER:", controller, "BASE FILE", basefile)
   
+  //fmt.Println("BASE IN APPS", BaseName(basefile), controller.RunningApplications(),  stringInSlice(BaseName(basefile), controller.RunningApplications()))
+  //fmt.Println("ARG IN APPS", os.Args[1], controller.RunningApplications(),  stringInSlice(os.Args[1], controller.RunningApplications()) )
+
   if stringInSlice(BaseName(basefile), controller.RunningApplications()) && isSymlink(basefile) {
     // bluepill was called as a symlink with the name of the target application
     controller_opts["application"] = basefile
     fmt.Println("godard was called as a symlink with the name of the target applicatio")
-  } else if stringInSlice(os.Args[0], controller.RunningApplications()){
+  
+  } else if stringInSlice(os.Args[1], controller.RunningApplications()){
     //the first arg is the application name
     controller_opts["application"] = os.Args[1]
     fmt.Println("ARGV SHIFT NAME:", controller_opts["application"])
-  } else if stringInSlice(os.Args[0], ApplicationCommands){
+  
+  } else if stringInSlice(cmd, ApplicationCommands){
     fmt.Println("OPT 3")
     if len(controller.RunningApplications()) == 1 {
       // there is only one, let's just use that
@@ -121,7 +126,7 @@ func main() {
       // There is more than one, tell them the list and exit
       fmt.Println("You must specify an application name to run that command. Here's the list of running applications:")
       for app , index := range( controller.RunningApplications() ) {
-        fmt.Println(" ", index, app)
+        fmt.Println("INDEX APP ", index, app)
       }
       fmt.Println("Usage: bluepill [app] cmd [options]")
       os.Exit(1)
@@ -131,40 +136,27 @@ func main() {
       os.Exit(2)
     }
 
+  }else{
+    fmt.Println("NONE OF THE ABOVE")
+
   }
 
   
-  fmt.Println("ARGS:", os.Args[0])
+  //fmt.Println("ARGS:", os.Args[0])
 
 
   if cmd == "load" {
     os.Setenv("GODARD_BASE_DIR", controller_opts["base_dir"].(string))
     config := cfg.ParseConfigFromFlagsAndFile(*configFile)
-    fmt.Println(config)
+    //fmt.Println(config)
     godard.Init(config)    
   }else{
-    target := "" //ARGV.shift
-    fmt.Println("HANDLE COMMAND NOW:" , controller_opts["application"] , controller_opts["command"], target)
-    //controller.HandleCommand(string(controller_opts["application"]), string(controller_opts["command"]), target)
+    target := os.Args[len(os.Args)-1] //ARGV.shift
+    fmt.Println("HANDLE COMMAND NOW:" , controller_opts["application"] , cmd, target)
+    app := controller_opts["application"].(string)
+
+    controller.HandleCommand(app, cmd, target)
   }
-  /*switch cmd {
-    case "load":
-      config := cfg.ParseConfigFromFlagsAndFile(*configFile)
-      godard.Init(config)
-    case "status":
-      fmt.Println("CURRENT STATUS", cmd)
-    case "start":
-      fmt.Println("STARTING CMD", cmd)
-    case "stop":
-      fmt.Println("STOP PROCESS", cmd)
-    case "quit":
-      fmt.Println("TERMINATING QUIT", cmd)
-    case "log":
-      fmt.Println("INIT LOGGING", cmd)
-    default:
-      fmt.Println("No command", cmd)
-      flag.Usage()
-  }*/
 }
 
 func stringInSlice(a string, list []string) bool {

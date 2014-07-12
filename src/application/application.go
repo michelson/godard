@@ -7,6 +7,11 @@ import(
   "log"
   "os"
   "path"
+  "syscall"
+  "io/ioutil"
+  "strconv"
+  "os/signal"
+  "strings"
 )
 
 type Application struct {
@@ -53,15 +58,16 @@ func NewApplication(name string , options *cfg.GodardConfig) *Application {
   c.PidsDir = path.Join(c.BaseDir, "pids", c.Name) //File.join(self.base_dir, 'pids', self.name)
   //c.kill_timeout = options.KillTimeout || 10
 
+  log.Println("PID FILE_:", c.PidFile)
   c.Groups = make(map[string]*Group, 0)
 
-  /*
-  self.logger = ProcessJournal.logger = Bluepill::Logger.new(:log_file => self.log_file, :stdout => foreground?).prefix_with(self.name)
+  
+  //self.logger = ProcessJournal.logger = Bluepill::Logger.new(:log_file => self.log_file, :stdout => foreground?).prefix_with(self.name)
 
-  self.setup_signal_traps
+  c.SetupSignalTraps()
 
-  @mutex = Mutex.new
-  */
+  //@mutex = Mutex.new
+  
   c.SetupPidsDir()
 
   return c
@@ -77,27 +83,27 @@ func (c *Application) isForeground() bool {
 
 func (c *Application) Start(names...string)  {
   //group_name string, process_name string
-  c.SendToProcessOrGroup("start", names...)
+  c.sendToProcessOrGroup("start", names...)
 }
 
 func (c *Application) Stop(names...string)  {
   //group_name string, process_name string
-  c.SendToProcessOrGroup("stop", names...)
+  c.sendToProcessOrGroup("stop", names...)
 }
 
 func (c *Application) Restart(names...string)  {
   //group_name string, process_name string
-  c.SendToProcessOrGroup("restart", names...)
+  c.sendToProcessOrGroup("restart", names...)
 }
 
 func (c *Application) UnMonitor(names...string)  {
   //group_name string, process_name string
-  c.SendToProcessOrGroup("unmonitor", names...)
+  c.sendToProcessOrGroup("unmonitor", names...)
 }
 
 func (c *Application) Status(names...string)  {
   //group_name string, process_name string
-  c.SendToProcessOrGroup("status", names...)
+  c.sendToProcessOrGroup("status", names...)
 }
 
 func (c *Application) AddProcess(process *pcs.Process, group_name string ){
@@ -139,42 +145,33 @@ func (c*Application) Load(){
 
 func (c*Application) StartListener(){
 
-  
+  for {
+   select {
+    case msg := <-c.Sock.ListenerChannel:
+        log.Println("received message:", msg)
+        args := strings.Split(msg, ":")
+        c.sendToProcessOrGroup(args[0], args[1:]...)
+    default:
+        
+    }
+  }
 }    
 
 func (c*Application) StartServer(){
     
-    //os.Remove("/tmp/godard.sock") // kill previous
+    //self.kill_previous_bluepill
+    //ProcessJournal.kill_all_from_all_journals
+    //ProcessJournal.clear_all_atomic_fs_locks
+    
+    // err := syscall.Setpgid(0, 0)
+    
+    //if err != nil {
+    //  log.Println("Errno::EPERM", err)
+    //}
 
-    /*def start_server
-      self.kill_previous_bluepill
-      ProcessJournal.kill_all_from_all_journals
-      ProcessJournal.clear_all_atomic_fs_locks
-
-      begin
-        ::Process.setpgid(0, 0)
-      rescue Errno::EPERM
-      end
-
-      Daemonize.daemonize unless foreground?
-
-      self.logger.reopen
-
-      $0 = "bluepilld: #{self.name}"
-
-      self.groups.each {|_, group| group.determine_initial_state }
-
-
-      self.write_pid_file
-      self.socket = Bluepill::Socket.server(self.base_dir, self.name)
-      self.start_listener
-
-      self.run
-    end*/
-
-    //ss = socket.NewSocket()
-    //socket.NewSocket.server(self.base_dir, self.name)
-
+    //Daemonize.daemonize unless foreground?
+    //self.logger.reopen
+    // $0 = "bluepilld: #{self.name}"
 
     for _, g := range(c.Groups) {
       g.DetermineInitialState()
@@ -190,15 +187,42 @@ func (c*Application) StartServer(){
     if err != nil {
       log.Println(err)
     }
+    c.WritePidFile()
     c.Sock = sock
-    c.StartListener()
-    c.Sock.Run()
+    //c.Sock.ListenerChannel = make(chan string)
 
+    c.SetupSignalTraps()
+
+    
+    go c.Sock.Run()
+
+    c.StartListener()
 
 
 }
 
 //Private
+
+func(c*Application) SetupSignalTraps(){
+
+  sigc := make(chan os.Signal, 2)
+  signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGTERM)
+  go func(cc chan os.Signal) {
+      // Wait for a SIGINT or SIGKILL:
+      sig := <-cc
+      log.Printf("Caught signal %s: shutting down.", sig)
+      // Stop listening (and unlink the socket if unix type):
+      c.Sock.Listener.Close()
+      //os.Remove("/tmp/godard.sock")
+      /*
+        puts "Terminating..."
+        cleanup
+        @running = false
+      */
+      // And we're done:
+      os.Exit(0)
+  }(sigc)
+}
 
 func (c *Application) SetupPidsDir(){
       /*FileUtils.mkdir_p(self.pids_dir) unless File.exists?(self.pids_dir)
@@ -211,7 +235,56 @@ func (c *Application) SetupPidsDir(){
       }
 }
 
-func (c *Application) SendToProcessOrGroup(method string , names...string){
-  
+func (c *Application) sendToProcessOrGroup(method string , names...string){
+  log.Println("PREPARE TO SEND", method ,"TO PROC OR GROUP", names)
+  var group_name  string
+  var process_name string
+  group_name = names[0]
+  if len(names) > 1 {
+    process_name = names[1]
+  }
+
+  if len(group_name) == 0 && len(process_name) == 0 {
+    for _ , group := range(c.Groups){
+      log.Println("THIS GROUP IS READY TO ,", group)
+      group.SendMethod(method , "")
+    }
+  } else if c.GroupInString(group_name){
+    // self.groups[group_name].send(method, process_name)
+    c.Groups[group_name].SendMethod(method ,process_name)
+  } else if len(process_name) == 0 {
+    // they must be targeting just by process name
+    process_name = group_name
+    for _ , group := range(c.Groups){
+      log.Println("THIS GROUP IS TARGETING JUST BY PROC ,", group)
+      group.SendMethod(method, process_name)
+    }
+    /* 
+        process_name = group_name
+        self.groups.values.collect do |group|
+          group.send(method, process_name)
+        end.flatten */
+  }else{
+    //[]
+  }
+
+  //log.Println(group_name , process_name)
+}
+
+func (c *Application) GroupInString(name string ) bool{
+  res := false
+  if _,ok := c.Groups[name]; ok {
+    res = true
+  }
+  return res
+}
+
+func (c *Application) WritePidFile(){
+  //File.open(self.pid_file, 'w') { |x| x.write(::Process.pid) }
+  str := []byte(strconv.Itoa( syscall.Getpid() ))
+  err := ioutil.WriteFile(c.PidFile, str, 0644)
+  if err != nil {
+    log.Println("Err creating pid:" , err)
+  }
 }
 

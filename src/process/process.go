@@ -67,10 +67,10 @@ type Process struct {
 
 	on_start_timeout string
 
-	group_start_noblock bool
-	group_restart_noblock bool
-	group_stop_noblock bool
-	group_unmonitor_noblock bool
+	Group_start_noblock bool
+	Group_restart_noblock bool
+	Group_stop_noblock bool
+	Group_unmonitor_noblock bool
 
 
 	skip_ticks_until time.Time
@@ -134,10 +134,10 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	  c.restart_grace_time = 3
 	  //@environment = {}
 	  c.on_start_timeout = "start"
-	  c.group_start_noblock = true
-	  c.group_stop_noblock = true
-	  c.group_restart_noblock = true
-	  c.group_unmonitor_noblock = true
+	  c.Group_start_noblock = true
+	  c.Group_stop_noblock = true
+	  c.Group_restart_noblock = true
+	  c.Group_unmonitor_noblock = true
 
 	  c.auto_start = true
 	/*
