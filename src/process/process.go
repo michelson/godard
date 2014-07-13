@@ -33,24 +33,24 @@ type Process struct {
 	pid_file string
 	pre_start_command string
 	StartCommand string
-	stop_command string
-	restart_command string
+	StopCommand string
+	RestartCommand string
 
-	stdout string
-	stderr string
-	stdin string
+	Stdout string
+	Stderr string
+	Stdin string
 
-	daemonize bool
+	Daemonize bool
 	PidFile string
-	working_dir string
-	environment map[string]string
+	WorkingDir string
+	Environment map[string]string
 
 	start_grace_time int
 	stop_grace_time int
 	restart_grace_time int
 
-	uid string
-	gid string
+	Uid string
+	Gid string
 
 	actual_pid int64
 	cache_actual_pid bool
@@ -79,9 +79,11 @@ type Process struct {
 
 	event_mutex *sync.Mutex
 
-	logger string
+	Logger string
 
 	state_machine *fsm.FSM
+
+  ListenerChannel chan map[string]string
 
 }
 
@@ -96,6 +98,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	c.Name = process_name
   c.StartCommand = options["start_command"].(string)
   c.PidFile = options["pid_file"].(string)
+  c.WorkingDir = options["working_dir"].(string)
   //p.AddWatches(c.Watches)
 	c.event_mutex = &sync.Mutex{}
 	c.Watches = make([]*watcher.ConditionWatch, 0)
@@ -107,6 +110,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	// @actual_pid = options[:actual_pid]
 	// self.logger = options[:logger]
 
+  c.ListenerChannel = make(chan map[string]string)
 
 	  for check_name , value := range(checks){
 	  	trigger_exists := false
@@ -176,8 +180,10 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 							c.CleanThreads()
 						}
 					},
-					"after_run": func(e *fsm.Event) {
+					"after_event": func(e *fsm.Event) {
+          
 						if c.state_machine.Current() == "starting" {
+
 							c.StartProcess()
 						}
 
@@ -261,6 +267,11 @@ func (c *Process) Dispatch(event string, reason string) {
     c.event_mutex.Lock()
     //@statistics.record_event(event, reason)
     //self.send("#{event}")
+
+    /*aa := make(map[string]int64,0)
+    aa[c.state_machine.Current()] = 23
+    c.ListenerChannel <- aa*/
+    c.state_machine.Event(event)
     c.event_mutex.Unlock()
 }  
 
@@ -421,7 +432,6 @@ func (c *Process) HandleUserCommand(cmd string){
 }
 
 func (c *Process) StartProcess(){
-
     c.PreStartProcess()
     log.Println( "Executing start command:", c.StartCommand)
     if c.isDaemonized() {
@@ -433,6 +443,7 @@ func (c *Process) StartProcess(){
           } if self.monitor_children?
         end
         daemon_id*/
+
     }else{
     	/*
 
@@ -450,7 +461,8 @@ func (c *Process) StartProcess(){
     
       	result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 				log.Println("EXEC RESULT :", result)
-				//result = System.execute_blocking(start_command, self.system_command_options)
+				c.ListenerChannel <- result
+        //result = System.execute_blocking(start_command, self.system_command_options)
 
         //unless result[:exit_code].zero?
         //  logger.warning "Start command execution returned non-zero exit code:"
@@ -468,7 +480,7 @@ func (c *Process) PreStartProcess(){
 		log.Println("Executing pre start command:", c.pre_start_command )
 		result := system.ExecuteBlocking(c.pre_start_command, c.SystemCommandOptions())
 		log.Println("PRE START COMMAND RESULT :", result)
-		if result["exit_code"] != 0 {
+		if result["exit_code"] != "0" {
 			log.Println("Pre start command execution returned non-zero exit code:")
 			log.Println(result)
 		}
@@ -533,8 +545,8 @@ func (c *Process) StopProcess(){
 
 func (c *Process) RestartProcess(){
 
-	if c.restart_command != ""{
-		cmd := c.PrepareCommand(c.restart_command)
+	if c.RestartCommand != ""{
+		cmd := c.PrepareCommand(c.RestartCommand)
 		log.Println("Executing restart command:", cmd)
 		//MAKE FUNCTIONAL HERE!!!
 		/*
@@ -551,7 +563,7 @@ func (c *Process) RestartProcess(){
     c.SkipTicksFor(c.restart_grace_time)
 
 	} else {
-		log.Println("No restart_command specified. Must stop and start to restart")
+		log.Println("No RestartCommand specified. Must stop and start to restart")
     c.StopProcess()
     c.StartProcess()
 	}
@@ -564,7 +576,7 @@ func (c *Process) CleanThreads(){
 }
 
 func (c *Process) isDaemonized() bool{
-	return !!c.daemonize
+	return !!c.Daemonize
 }
 
 func (c *Process) isMonitorChildren() bool{
@@ -667,15 +679,15 @@ func (c *Process) RefreshChildren() {
 func (c *Process) SystemCommandOptions() map[string]interface{} {
 	m := make(map[string]interface{}, 0)
   
-  m["uid"] = c.uid
-  m["gid"] = c.gid
-  m["working_dir"] = c.working_dir
-  m["environment"] = c.environment
-  m["pid_file"] = c.pid_file
-  m["logger"] = c.logger
-  m["stdin"] = c.stdin
-  m["stdout"] = c.stdout
-  m["stderr"] = c.stderr
+  m["uid"] = c.Uid
+  m["gid"] = c.Gid
+  m["working_dir"] = c.WorkingDir
+  m["environment"] = c.Environment
+  m["pid_file"] = c.PidFile
+  m["logger"] = c.Logger
+  m["stdin"] = c.Stdin
+  m["stdout"] = c.Stdout
+  m["stderr"] = c.Stderr
   m["supplementary_groups"] = c.supplementary_groups
  
   return m

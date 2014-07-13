@@ -214,10 +214,9 @@ func checkError(err error) {
 
 //http://stackoverflow.com/questions/10781516/how-to-pipe-several-commands
 //http://stackoverflow.com/questions/10385551/get-exit-code-go
-func ExecuteBlocking(command string , options map[string]interface{}) map[string]int64{
+func disabledExecuteBlocking(command string , options map[string]interface{}) map[string]int64{
     c1 := exec.Command(command)
-    
-
+  
     r, w := io.Pipe() 
     c1.Stdout = w
     c1.Stdin = r
@@ -257,6 +256,60 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
     //so,  := io.Copy(os.Stdout, &b2)
     m["stdout"], _ = io.Copy(os.Stdout, &b2)
     m["stderr"], _ = io.Copy(os.Stderr, &b1)
+    log.Println("EXEC OPTIONS:", options)
+    return m
+}
+
+func ExecuteBlocking(command string , options map[string]interface{}) map[string]string{
+  
+    //if options["working_dir"]
+      working_dir :=  options["working_dir"].(string)
+      os.Setenv("PWD", working_dir )
+      os.Chdir(working_dir)
+
+    args := strings.Split(command, " ")
+    m := make(map[string]string)
+    subProcess := exec.Command(args[0], args[1:]...) //Just for testing, replace with your subProcess
+    
+    stdin, err := subProcess.StdinPipe()
+    if err != nil {
+        log.Println(err) //replace with logger, or anything you want
+    }
+
+    stdout, err := subProcess.StdoutPipe()
+    if err != nil {
+        log.Println(err) //replace with logger, or anything you want
+    }
+
+    //defer subProcess.Wait() 
+    defer stdin.Close() // the doc says subProcess.Wait will close it, but I'm not sure, so I kept this line
+
+    subProcess.Stdout = os.Stdout
+    subProcess.Stderr = os.Stderr
+
+    log.Println("START") //for debug
+    if err = subProcess.Start(); err != nil { //Use start, not run
+        log.Println("An error occured: ", err) //replace with logger, or anything you want
+    }
+
+    //io.WriteString(stdin, "4\n")
+    //log.Println("STDIN" , stdin)
+
+    buf := new(bytes.Buffer)
+    buf.ReadFrom(stdout)
+    s := buf.String()
+    //log.Println(s)
+    //log.Println("STDERR:",subProcess.Stderr)
+    //log.Println("STDIN:",subProcess.Stdin)
+    subProcess.Wait()
+
+    m["stdout"] = s
+    m["exit_code"] = "0"
+    //m["stdin"] = sin
+
+    //log.Println(m)
+    //log.Println("END") //for debug
+    //log.Println("EXEC OPTIONS:", options)
     return m
 }
 /*

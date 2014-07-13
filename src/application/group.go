@@ -5,6 +5,7 @@ import(
   "log"
   "strings"
   "reflect"
+  "time"
 )
 
 type Group struct {
@@ -60,7 +61,10 @@ func (c*Group) SendMethod(method string , process_name string){
   log.Println("SEND",method,"METHOD TO" , process_name, " IS GOING TO BE SO COOL")
   log.Println(c.Processes)
   //threads = []
+
   var affected []string 
+  //var threads  []map[string]int64
+  //threads = make([]map[string]int64 ,0)
   for _ , process := range(c.Processes){
     if len(process_name) > 0 && process_name != process.Name{
       continue  
@@ -69,12 +73,24 @@ func (c*Group) SendMethod(method string , process_name string){
     s := []string{c.Name , process.Name}
     affected = append(affected, strings.Join(s, ":") )
     v := reflect.ValueOf(*process)
-    noblock := v.FieldByName("Group_"+method+"_noblock")
-    
+    noblock_field := v.FieldByName("Group_"+method+"_noblock")
+    noblock := noblock_field.Interface().(bool)
     if noblock {
-      //noblock.Interface().(bool) // reflection method value
       log.Println("Command", method ," running in non-blocking mode.")
       //threads << Thread.new { process.handle_user_command("#{event}") }
+      go process.HandleUserCommand(method)
+
+       select {
+        case msg := <-process.ListenerChannel:
+            log.Println("PROCESS RECEIVED ACTION:", msg)
+            //args := strings.Split(msg, ":")
+            //threads = append(threads, msg)
+        case <-time.After(time.Second * 2):
+            log.Println("timeout 1")   
+        default:
+        }
+
+      
     }else{
       log.Println("Command", method ," running in blocking mode.")
       //thread = Thread.new { process.handle_user_command("#{event}") }
