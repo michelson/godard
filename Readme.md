@@ -24,7 +24,8 @@ http://stackoverflow.com/questions/11356330/getting-cpu-usage-with-golang
 
 ## example , local rails with rvm 
 
-create wrapper
-rvm wrapper ruby-1.9.3-p327@artenlinea test "bundle"
+###create wrapper
+
+    rvm wrapper ruby-1.9.3-p327@artenlinea test "bundle"
 
 so the command is test_bundle exec rails s

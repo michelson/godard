@@ -54,7 +54,7 @@ func NewApplication(name string , options *cfg.GodardConfig) *Application {
   log.Println("APP BASE DIR:", c.BaseDir)
   //c.base_dir     = options["base_dir"] //|| ENV['BLUEPILL_BASE_DIR'] || (::Process.euid != 0 ? File.join(ENV['HOME'], '.bluepill') : "/var/run/bluepill")
   
-  c.PidFile = path.Join(c.BaseDir, "pids", c.Name, ".pid") // File.join(self.base_dir, 'pids', self.name + ".pid")
+  c.PidFile = path.Join(c.BaseDir, "pids", c.Name, c.Name + ".pid") // File.join(self.base_dir, 'pids', self.name + ".pid")
   c.PidsDir = path.Join(c.BaseDir, "pids", c.Name) //File.join(self.base_dir, 'pids', self.name)
   //c.kill_timeout = options.KillTimeout || 10
 
@@ -193,7 +193,6 @@ func (c*Application) StartServer(){
 
     c.SetupSignalTraps()
 
-    
     go c.Sock.Run()
 
     c.StartListener()
@@ -282,6 +281,7 @@ func (c *Application) GroupInString(name string ) bool{
 func (c *Application) WritePidFile(){
   //File.open(self.pid_file, 'w') { |x| x.write(::Process.pid) }
   str := []byte(strconv.Itoa( syscall.Getpid() ))
+  log.Println("WRITTING APP PID:", string(str), c.PidFile)
   err := ioutil.WriteFile(c.PidFile, str, 0644)
   if err != nil {
     log.Println("Err creating pid:" , err)

@@ -133,19 +133,19 @@ func Command(pid int) (string, error){
   return process["command"].(string), err
 }
 
-func GetChildren(parent_pid int) ([]map[string]interface{}, error){
+func GetChildren(parent_pid int64) ([]map[string]interface{}, error){
   child_pids := make([]map[string]interface{}, 0)
 
   processes , err := PsAxu()
 
   for _, p := range(processes) {
-    if p["ppid"].(int) == parent_pid {
+    if p["ppid"].(int64) == parent_pid {
       child_pids = append(child_pids, p)
     }
   }
 
   for _, p := range(child_pids) {
-    gcp, _ := GetChildren(p["pid"].(int))
+    gcp, _ := GetChildren(p["pid"].(int64))
     for _, ppp := range(gcp) {
       child_pids = append(child_pids, ppp)
     }
@@ -287,7 +287,7 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
     subProcess.Stdout = os.Stdout
     subProcess.Stderr = os.Stderr
 
-    log.Println("START") //for debug
+    //log.Println("START") //for debug
     if err = subProcess.Start(); err != nil { //Use start, not run
         log.Println("An error occured: ", err) //replace with logger, or anything you want
     }

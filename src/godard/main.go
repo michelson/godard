@@ -112,9 +112,9 @@ func main() {
     controller_opts["application"] = basefile
     fmt.Println("godard was called as a symlink with the name of the target applicatio")
   
-  } else if stringInSlice(os.Args[1], controller.RunningApplications()){
+  } else if stringInSlice(os.Args[0], controller.RunningApplications()){
     //the first arg is the application name
-    controller_opts["application"] = os.Args[1]
+    controller_opts["application"] = os.Args[0]
     fmt.Println("ARGV SHIFT NAME:", controller_opts["application"])
   
   } else if stringInSlice(cmd, ApplicationCommands){
@@ -128,11 +128,11 @@ func main() {
       for app , index := range( controller.RunningApplications() ) {
         fmt.Println("INDEX APP ", index, app)
       }
-      fmt.Println("Usage: bluepill [app] cmd [options]")
+      fmt.Println("Usage: godard [app] cmd [options]")
       os.Exit(1)
     }else{
       // There are none running AND they aren't trying to start one
-      fmt.Println("Error: There are no running bluepill daemons.\nTo start a bluepill daemon, use: bluepill load <config file>")
+      fmt.Println("Error: There are no running godard daemons.\nTo start a godard daemon, use: godard load <config file>")
       os.Exit(2)
     }
 

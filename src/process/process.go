@@ -9,8 +9,11 @@ import (
 	time "time"
 	"strings"
 	"sync"
+  "syscall"
 	system "system"
 	fsm "github.com/looplab/fsm"
+  "strconv"
+  "errors"
   //"sync/atomic"
 )
 
@@ -45,9 +48,9 @@ type Process struct {
 	WorkingDir string
 	Environment map[string]string
 
-	start_grace_time int
-	stop_grace_time int
-	restart_grace_time int
+	StartGraceTime int
+	StopGraceTime int
+	RestartGraceTime int
 
 	Uid string
 	Gid string
@@ -58,14 +61,14 @@ type Process struct {
 	monitor_children bool
 	child_process_factory string
 
-	pid_command string
-	auto_start bool
+	PidCommand string
+	AutoStart bool
 
-	supplementary_groups string
+	SupplementaryGroups string
 
-	stop_signals string
+	StopSignals string
 
-	on_start_timeout string
+	OnStartTimeout string
 
 	Group_start_noblock bool
 	Group_restart_noblock bool
@@ -73,7 +76,7 @@ type Process struct {
 	Group_unmonitor_noblock bool
 
 
-	skip_ticks_until time.Time
+	skip_ticks_until int64
 	process_running bool
 	state string
 
@@ -89,7 +92,8 @@ type Process struct {
 
 func check(e error) {
 	if e != nil {
-		panic(e)
+		//panic(e)
+    log.Println("ERROR:", e)
 	}
 }
 
@@ -133,17 +137,17 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	  // These defaults are overriden below if it's configured to be something else.
 	  c.monitor_children =  false
 	  c.cache_actual_pid = true
-	  c.start_grace_time = 3
-	  c.stop_grace_time = 3
-	  c.restart_grace_time = 3
+	  c.StartGraceTime = 3
+	  c.StopGraceTime = 3
+	  c.RestartGraceTime = 3
 	  //@environment = {}
-	  c.on_start_timeout = "start"
+	  c.OnStartTimeout = "start"
 	  c.Group_start_noblock = true
 	  c.Group_stop_noblock = true
 	  c.Group_restart_noblock = true
 	  c.Group_unmonitor_noblock = true
 
-	  c.auto_start = true
+	  c.AutoStart = true
 	/*
 	  CONFIGURABLE_ATTRIBUTES.each do |attribute_name|
 		self.send("#{attribute_name}=", options[attribute_name]) if options.has_key?(attribute_name)
@@ -377,7 +381,7 @@ func (c *Process) DetermineInitialState(){
    		c.state_machine.SetCurrent("up")
    	}else{
    		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
-   		if c.auto_start == false {
+   		if c.AutoStart == false {
    			c.state_machine.SetCurrent("unmonitored")
    		}else{
    			c.state_machine.SetCurrent("down")
@@ -472,7 +476,7 @@ func (c *Process) StartProcess(){
 
     }
 
-    c.SkipTicksFor(c.start_grace_time)
+    c.SkipTicksFor(c.StartGraceTime)
 }
 
 func (c *Process) PreStartProcess(){
@@ -488,29 +492,35 @@ func (c *Process) PreStartProcess(){
 }
 //NOK
 func (c *Process) StopProcess(){
-	/*
-      if monitor_children
-        System.get_children(self.actual_pid).each do |child_pid|
-          ProcessJournal.append_pid_to_journal(name, child_pid)
-        end
+  if c.monitor_children {
+    /*childs , _ := system.GetChildren(c.actual_pid)
+    for child_pid, _ := range(childs){
+      //ProcessJournal.append_pid_to_journal(name, child_pid)
+      log.Println("Stop process : " , child_pid)
+    }*/
+
+  }
+  if len(c.StopCommand) > 0 {
+    cmd := c.PrepareCommand(c.StopCommand)
+    log.Println("Executing stop command:", cmd)
+
+    result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+    log.Println("EXEC RESULT:", result)
+    c.ListenerChannel <- result
+    /*
+    with_timeout(stop_grace_time, "stop") do
+      result = System.execute_blocking(cmd, self.system_command_options)
+
+      unless result[:exit_code].zero?
+        logger.warning "Stop command execution returned non-zero exit code:"
+        logger.warning result.inspect
       end
-
-      if stop_command
-        cmd = self.prepare_command(stop_command)
-        logger.warning "Executing stop command: #{cmd}"
-
-        with_timeout(stop_grace_time, "stop") do
-          result = System.execute_blocking(cmd, self.system_command_options)
-
-          unless result[:exit_code].zero?
-            logger.warning "Stop command execution returned non-zero exit code:"
-            logger.warning result.inspect
-          end
-        end
-
-      elsif stop_signals
-        # issue stop signals with configurable delay between each
-        logger.warning "Sending stop signals to #{actual_pid}"
+    end
+    */
+  }else if len(c.StopSignals) > 0 {
+    //issue stop signals with configurable delay between each
+    log.Println( "Sending stop signals to", c.actual_pid )
+    /*
         @threads << Thread.new(self, stop_signals.clone) do |process, stop_signals|
           signal = stop_signals.shift
           logger.info "Sending signal #{signal} to #{process.actual_pid}"
@@ -532,15 +542,16 @@ func (c *Process) StopProcess(){
             process.signal_process(signal)
           end
         end
-      else
-        logger.warning "Executing default stop command. Sending TERM signal to #{actual_pid}"
-        signal_process("TERM")
-      end
-      ProcessJournal.kill_all_from_journal(name) # finish cleanup
-      self.unlink_pid # TODO: we only write the pid file if we daemonize, should we only unlink it if we daemonize?
+    */
+  }else{
+    log.Println( "Executing default stop command. Sending TERM signal to", c.ActualPid )
+    c.SignalProcess(syscall.SIGTERM)
+  }
+  //ProcessJournal.kill_all_from_journal(name) # finish cleanup
+  c.UnlinkPid() // TODO: we only write the pid file if we daemonize, should we only unlink it if we daemonize?
 
-      self.skip_ticks_for(stop_grace_time)
-	*/
+  c.SkipTicksFor(c.StopGraceTime)
+
 }
 
 func (c *Process) RestartProcess(){
@@ -560,7 +571,11 @@ func (c *Process) RestartProcess(){
 	    end
 		*/
 
-    c.SkipTicksFor(c.restart_grace_time)
+    result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+    log.Println("EXEC RESULT:", result)
+    c.ListenerChannel <- result
+
+    c.SkipTicksFor(c.RestartGraceTime)
 
 	} else {
 		log.Println("No RestartCommand specified. Must stop and start to restart")
@@ -583,38 +598,81 @@ func (c *Process) isMonitorChildren() bool{
 	return !!c.monitor_children
 }
 
-func (c *Process) SignalProcess(code int){
-	/*
+func (c *Process) SignalProcess(code syscall.Signal) bool{
+  //from config example: process.stop_signals = [:quit, 30.seconds, :term, 5.seconds, :kill]
+  //SIGEMT  SIGFPE  SIGHUP SIGILL SIGINFO  SIGINT SIGIO                       = 0x17
+  //SIGIOT  SIGKILL SIGLWP SIGPIPE SIGPROF SIGQUIT                     = 0x3
+  //SIGSEGV SIGSTOP SIGSYS SIGTERM SIGTHR SIGTRAP  
 
-      code = code.to_s.upcase if code.is_a?(String) || code.is_a?(Symbol)
-      ::Process.kill(code, actual_pid)
-      true
-    rescue Exception => e
-      logger.err "Failed to signal process #{actual_pid} with code #{code}: #{e}"
-      false
-
-	*/
+  /*
+  HUP (hang up)
+  INT (interrupt)
+  QUIT (quit)
+  ABRT (abort)       
+  KILL (non-catchable, non-ignorable kill)
+  ALRM (alarm clock)
+  TERM (software termination signal)
+  */
+  log.Println("WE ARE GOING TO KILL PROCESS PID:", c.ActualPid() )
+  if c.actual_pid == 0 {
+    log.Println( "No pid to kill" )
+    return false
+  }
+  err := syscall.Kill(c.ActualPid(), code)
+  var res bool
+  if err == nil {
+    res = true
+  }else{
+    log.Println( "Failed to signal process", c.actual_pid, " with code", code, ":",err )
+    res = false
+  }
+  return res
 }
 
 func (c *Process) isActualPidCached() bool{
 	return !!c.cache_actual_pid
 }
 
-func (c *Process) ActualPid() string{
+func (c *Process) ActualPid() int{
 	value := ""
-  if c.pid_command != "" {
+  if c.PidCommand != "" {
   	value, _ = c.PidFromCommand()
   } else {
   	value, _ = c.PidFromFile()
   } 
-  return value
+  //log.Println("PID ACTUAL:", value)
+  var int_str int
+  int_str, _ = strconv.Atoi(value)
+  return int_str
 }
 
 func (c *Process) PidFromFile() (string, error) {
-	dat, err := ioutil.ReadFile(c.Name)
-	check(err)
-	//log.Println(string(dat))
-	return string(dat) , err
+	//ap := strconv.Atoi(c.actual_pid)
+
+  var int_pid int
+  int_pid = int(c.actual_pid)
+  stringed_pid := strconv.Itoa(int_pid)
+  
+  if c.cache_actual_pid && c.actual_pid > 0 {
+    return stringed_pid, nil
+  }else{
+    if len(c.PidFile) > 0 {
+      dat, err := ioutil.ReadFile(c.PidFile)
+      if err != nil {
+        err := errors.New("pid_file " + c.PidFile + " does not exist or cannot be read")
+        return "" , err        
+      }
+      var num_pid string
+      num_pid = string(dat)
+      int_str, _ := strconv.Atoi(num_pid)
+      c.actual_pid = int64(int_str)
+      return string(dat) , err
+    }else{
+      log.Println("pid_file", c.PidFile, " does not exist or cannot be read")
+      err := errors.New("pid_file " + c.PidFile + " does not exist or cannot be read")
+      return "" , err
+    }
+  }
 
 }
 func (c *Process) PidFromCommand() (string, error) {
@@ -637,14 +695,28 @@ func (c *Process) UnlinkPid() {
   system.DeleteIfExists(c.pid_file)
 }
 
-func (c *Process) SkipTicksFor(seconds int) {}
+func (c *Process) SkipTicksFor(seconds int) {
+  /*
+    TODO: should this be addative or longest wins?
+    i.e. if two calls for skip_ticks_for come in for 5 and 10, should it skip for 10 or 15?
+    self.skip_ticks_until = (self.skip_ticks_until || Time.now.to_i) + seconds.to_i
+  */
+    var secs int64
+    secs = int64(seconds) 
+    if c.skip_ticks_until > 0 {
+      c.skip_ticks_until = time.Now().Unix() + secs
+    }else{
+      c.skip_ticks_until = c.skip_ticks_until + secs
+    }
+     
+}
 
 func (c *Process) isSkippingTicks() bool {
 	t := time.Now()
 	//c.skip_ticks_until = time.Now()
 	value := false
 	//if c.skip_ticks_until != nil { //&& c.skip_ticks_until > t { //time.Since(t).Seconds() 
-	if c.skip_ticks_until.Unix() > t.Unix() {
+	if c.skip_ticks_until > t.Unix() {
 		value = true
 	}
 	return value
@@ -688,13 +760,14 @@ func (c *Process) SystemCommandOptions() map[string]interface{} {
   m["stdin"] = c.Stdin
   m["stdout"] = c.Stdout
   m["stderr"] = c.Stderr
-  m["supplementary_groups"] = c.supplementary_groups
+  m["supplementary_groups"] = c.SupplementaryGroups
  
   return m
 }
 
 func (c *Process) PrepareCommand(command string) string {
-	cmd := strings.Replace( command , "{{PID}}", c.ActualPid(), 1)
+ 
+	cmd := strings.Replace( command , "{{PID}}", strconv.Itoa(c.ActualPid()), 1)
 	return cmd
 }
 
