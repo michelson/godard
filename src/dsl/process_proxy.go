@@ -28,9 +28,7 @@ func NewProcessProxy(process_name string, attributes map[string]interface{}) *Pr
       }
     }
   }
-
-  //log.Println("CHECKS:", c.Watches)
-
+  
   return c
 }
 

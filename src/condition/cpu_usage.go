@@ -2,6 +2,8 @@ package condition
 
 import (
   system "system"
+  "strconv"
+  "log"
 )
 
 type CpuUsage struct {
@@ -9,12 +11,16 @@ type CpuUsage struct {
 }
 
 func NewCpuUsage(options map[string]interface{}) *CpuUsage{
-  c := &CpuUsage{Below: 5}
+  var below float64
+  below = float64(options["below"].(float64))
+  c := &CpuUsage{Below: below}
   return c
 }
 
 func (c *CpuUsage) Run(pid int , include_children bool) (float64 , error) {
-  return system.CpuUsage(pid) //, include_children)
+  val, err := system.CpuUsage(pid) //, include_children)
+  log.Println("CPU USAGE:", val )
+  return val, err
 }
 
 func (c *CpuUsage) Check(value float64 , include_children bool) (bool , error) {
@@ -23,7 +29,11 @@ func (c *CpuUsage) Check(value float64 , include_children bool) (bool , error) {
 }
 
 func (c *CpuUsage) FormatValue(value float64) string{
-   return "oli"
+   var int_val int
+   int_val = int(value)
+   var str string
+   str = strconv.Itoa(int_val) 
+   return str
 }
 
 /*

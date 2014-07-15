@@ -42,7 +42,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
   */
 
       v := options.(map[string]interface{})
-      log.Println("CREATING CONDITION", v["every"])
+      log.Println("CREATING", name ,"CONDITION", v["every"])
       c := &ConditionWatch{}
       
       if _,ok := v["fires"]; ok {
@@ -66,11 +66,24 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       @process_condition = ProcessConditions[@name].new(options)*/
       //process_condition := process_condition[c.Name]condition.ProcessCondition{}
       
-      conditions := []condition.ProcessCondition{ condition.NewCpuUsage( v ) }
+      log.Println("WATCH NAMMMAMAM", c.Name)
+
+      conditions := make([]condition.ProcessCondition, 0 )
       
-      for _, cond := range conditions {
-        log.Println(cond.Check(100, false))
+      switch c.Name {
+        case "mem_usage":
+            conditions = []condition.ProcessCondition{ condition.NewMemoryUsage( v ) }
+        case "cpu_usage":
+            conditions = []condition.ProcessCondition{ condition.NewCpuUsage( v ) }
+        case "file_time":
+            //conditions = []condition.ProcessCondition{ condition.NewFileTimeUsage( v ) }
+        case "running_time":
+            //conditions = []condition.ProcessCondition{ condition.NewCpuUsage( v ) }
       }
+
+      /*for _, cond := range conditions {
+        log.Println(cond.Check(100, false))
+      }*/
 
       c.ProcessCondition = conditions
 
@@ -95,32 +108,32 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
     end
     */
 
-    log.Println("WTF!!!!:" , c.LastRanAt , c.LastRanAt , c.Every) 
+    log.Println("RUNNING CONDITION EVERY", c.Every) 
 
-      fires := make([]string, 0)
+    fires := make([]string, 0)
 
-      if c.LastRanAt == 0 || (c.LastRanAt + c.Every) <= tick_number {
-        
-        c.LastRanAt = tick_number
+    if c.LastRanAt == 0 || (c.LastRanAt + c.Every) <= tick_number {
+      
+      c.LastRanAt = tick_number
 
-        var value float64
-        var formatted string
-        var checked bool
-        
-        for _, cond := range c.ProcessCondition {
-          value, _ = cond.Run(pid, false) 
-          formatted = cond.FormatValue(value)   
-          checked, _ = cond.Check(value, false)   
-        }
+      var value float64
+      var formatted string
+      var checked bool
+      
+      //for _, cond := range c.ProcessCondition {
+        value, _   = c.ProcessCondition[0].Run(pid, false) 
+        formatted  = c.ProcessCondition[0].FormatValue(value)   
+        checked, _ = c.ProcessCondition[0].Check(value, false)   
+      //}
 
-        c.PushHistory( &HistoryValue{formatted, checked} )
-        
-        if c.isFired(){
-          fires = c.Fires 
-        }        
-      }
+      c.PushHistory( &HistoryValue{Value: formatted, Critical: checked} )
+      
+      if c.isFired(){
+        fires = c.Fires 
+      }        
+    }
 
-      return fires
+    return fires
 
 }
 
@@ -143,8 +156,11 @@ func (c*ConditionWatch) isFired() bool {
   // @history.count {|v| not v.critical} >= @times.first
   var count float64
   for _, h := range(c.History) {
-    if !h.Critical {
-      count = count + 1
+    if h != nil {
+      log.Println("HISTORY:" , "val:", h.Value , "critical", h.Critical)
+      if !h.Critical {
+        count = count + 1
+      }
     }
   }
   assert := count >= c.Times[1]

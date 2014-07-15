@@ -6,6 +6,7 @@ import (
 	"log"
 	watcher "watcher"
 	//trigger "trigger"
+  "os"
 	time "time"
 	"strings"
 	"sync"
@@ -97,57 +98,86 @@ func check(e error) {
 	}
 }
 
+func (c*Process) SetConfigOptions(options map[string]interface{}){
+  //use reflect to dry this 
+  /*for k, v := range(options){ 
+    if _,ok := c.Groups[k]; ok {
+       res = true
+    }
+  }*/
+
+  if _,ok := options["start_command"]; ok {
+    c.StartCommand = options["start_command"].(string)
+  }
+
+  if _,ok := options["pid_file"]; ok {
+    c.PidFile = options["pid_file"].(string)
+  }
+
+  if _,ok := options["working_dir"]; ok {
+    c.WorkingDir = options["working_dir"].(string)
+  }
+
+  if _,ok := options["daemonize"]; ok {
+    c.Daemonize = options["daemonize"].(bool)
+  }
+
+  if _,ok := options["auto_start"]; ok {
+    c.AutoStart = options["auto_start"].(bool)
+  }
+  
+}
+
 func NewProcess(process_name string, checks map[string]interface{}, options map[string]interface{}) *Process {
 	c := &Process{}
 	c.Name = process_name
-  c.StartCommand = options["start_command"].(string)
-  c.PidFile = options["pid_file"].(string)
-  c.WorkingDir = options["working_dir"].(string)
   //p.AddWatches(c.Watches)
 	c.event_mutex = &sync.Mutex{}
 	c.Watches = make([]*watcher.ConditionWatch, 0)
 	c.Triggers = make([]*Trigger, 0)
 	c.Children = make([]*Process, 0)
 	// @threads = []
-	// @statistics = ProcessStatistics.new
   c.Statistics = NewProcessStatistics()
 	// @actual_pid = options[:actual_pid]
 	// self.logger = options[:logger]
 
   c.ListenerChannel = make(chan map[string]string)
 
-	  for check_name , value := range(checks){
-	  	trigger_exists := false
-	  	for _, v := range(c.Triggers){
-	  		if v.Name == check_name{
-	  			trigger_exists = true
-	  			break
-	  		}
-	  	}
-	  	if trigger_exists {
-				log.Println("add trigger here:", check_name, value)
-				c.AddTrigger(check_name, value)
-  		}else{
-  			//log.Println("add watch here:", check_name, value)
-  			c.AddWatch(check_name, value)
+  for check_name , value := range(checks){
+  	trigger_exists := false
+  	for _, v := range(c.Triggers){
+  		if v.Name == check_name{
+  			trigger_exists = true
+  			break
   		}
-	  	
-	  }
+  	}
+  	if trigger_exists {
+  		log.Println("add trigger here:", check_name, value)
+  		c.AddTrigger(check_name, value)
+  	}else{
+  		//log.Println("add watch here:", check_name, value)
+  		c.AddWatch(check_name, value)
+  	}
+  	
+  }
 
-	  // These defaults are overriden below if it's configured to be something else.
-	  c.monitor_children =  false
-	  c.cache_actual_pid = true
-	  c.StartGraceTime = 3
-	  c.StopGraceTime = 3
-	  c.RestartGraceTime = 3
-	  //@environment = {}
-	  c.OnStartTimeout = "start"
-	  c.Group_start_noblock = true
-	  c.Group_stop_noblock = true
-	  c.Group_restart_noblock = true
-	  c.Group_unmonitor_noblock = true
+  // These defaults are overriden below if it's configured to be something else.
+  c.monitor_children =  false
+  c.cache_actual_pid = true
+  c.StartGraceTime = 3
+  c.StopGraceTime = 3
+  c.RestartGraceTime = 3
+  //@environment = {}
+  c.OnStartTimeout = "start"
+  c.Group_start_noblock = true
+  c.Group_stop_noblock = true
+  c.Group_restart_noblock = true
+  c.Group_unmonitor_noblock = true
 
-	  c.AutoStart = true
+  c.AutoStart = true
+
+  c.SetConfigOptions(options)
+
 	/*
 	  CONFIGURABLE_ATTRIBUTES.each do |attribute_name|
 		self.send("#{attribute_name}=", options[attribute_name]) if options.has_key?(attribute_name)
@@ -161,6 +191,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	c.state_machine = fsm.NewFSM(
 	    "unmonitored",
 	    fsm.Events{
+
 	        {Name: "tick_up", Src: []string{"starting"}, Dst: "up"},
 	        {Name: "tick_down", Src: []string{"starting"}, Dst: "down"},
 
@@ -169,6 +200,9 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 
 	        {Name: "tick_up", Src: []string{"stopping"}, Dst: "up"},
 	        {Name: "tick_down", Src: []string{"stopping"}, Dst: "down"},
+
+          {Name: "tick_up", Src: []string{"down"}, Dst: "up"},
+          {Name: "tick_down", Src: []string{"down"}, Dst: "starting"},
 
 	        {Name: "tick_up", Src: []string{"restarting"}, Dst: "up"},
 	        {Name: "tick_down", Src: []string{"restarting"}, Dst: "down"},
@@ -187,7 +221,6 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 					"after_event": func(e *fsm.Event) {
           
 						if c.state_machine.Current() == "starting" {
-
 							c.StartProcess()
 						}
 
@@ -226,12 +259,13 @@ func (c *Process) Tick(){
     if c.state_machine.Current() == "unmonitored"{
 			c.CleanThreads()
     }
+
     // run state machine transitions
     if c.isProcessRunning(false){
-    	log.Println("TICKS UP")
+    	log.Println("TICKS UP WITH", c.state_machine.Current())
     	c.state_machine.Event("tick_up")	
     }else{
-    	log.Println("TICKS DOWN")
+    	log.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current() )
     	c.state_machine.Event("tick_down")	
     }
     
@@ -262,20 +296,10 @@ func (c *Process) isUp() bool{
 }
 
 func (c *Process) Dispatch(event string, reason string) {
- /*
-      c.event_mutex.synchronize do
-        @statistics.record_event(event, reason)
-        self.send("#{event}")
-      end
- */
     c.event_mutex.Lock()
-    //@statistics.record_event(event, reason)
-    //self.send("#{event}")
-
-    /*aa := make(map[string]int64,0)
-    aa[c.state_machine.Current()] = 23
-    c.ListenerChannel <- aa*/
+    c.Statistics.RecordEvent(event, reason)
     c.state_machine.Event(event)
+    log.Println("STATS: ", c.Statistics.Events)
     c.event_mutex.Unlock()
 }  
 
@@ -296,6 +320,8 @@ func (c *Process) RecordTransition(transition string) {
       end
 
 	*/
+  log.Println("TRANSITION TO: ", c.state_machine.Current())
+
 }
 
 func (c *Process) NotifyTriggers(transition string) {
@@ -312,6 +338,7 @@ func (c *Process) AddTrigger(name string, value interface{}) {
 	//m["name"] = name
 	//m["logger"] = c.logger
 	c.Triggers = append(c.Triggers, NewTrigger(c , v))
+  log.Println("TRIGGER ADDED:", c.Triggers)
 }
 
 func (c *Process) AddWatches(options map[string]interface{}){
@@ -337,34 +364,41 @@ func (c *Process) AddWatch(name string, value interface{}) {
 //NOK
 func (c *Process) RunWatches() {
 
-	/*now := time.Now().Unix()
-	for _ , watch := range(c.Watches){
+	now := float64(time.Now().Unix())
+  //threads := make(map[*watcher.ConditionWatch]bool, 0)
+  log.Println("RUN WATCHES", c.Watches)
+	for _, watch := range(c.Watches){
+    log.Println("WATCH RES ON PID:",  c.ActualPid() , "VAL:", watch.Run(c.ActualPid(), now) )
+	}
 
-	}*/
+/*
+  threads = self.watches.collect do |watch|
+    [watch, Thread.new { Thread.current[:events] = watch.run(self.actual_pid, now) }]
+  end
+*/
+
 	/*
-      now = Time.now.to_i
+   
+    @transitioned = false
 
-      threads = self.watches.collect do |watch|
-        [watch, Thread.new { Thread.current[:events] = watch.run(self.actual_pid, now) }]
-      end
-
-      @transitioned = false
-
-      threads.inject([]) do |events, (watch, thread)|
-        thread.join
-        if thread[:events].size > 0
-          logger.info "#{watch.name} dispatched: #{thread[:events].join(',')}"
-          thread[:events].each do |event|
-            events << [event, watch.to_s]
-          end
+    threads.inject([]) do |events, (watch, thread)|
+      thread.join
+      if thread[:events].size > 0
+        logger.info "#{watch.name} dispatched: #{thread[:events].join(',')}"
+        thread[:events].each do |event|
+          events << [event, watch.to_s]
         end
-        events
-      end.each do |(event, reason)|
-        break if @transitioned
-        self.dispatch!(event, reason)
       end
+      events
+    end.each do |(event, reason)|
+      break if @transitioned
+      self.dispatch!(event, reason)
+    end
 
 	*/
+
+  log.Println("RUN WATCHES NOW:", c.state_machine.Current())
+
 
 }
 
@@ -378,10 +412,12 @@ func (c *Process) DetermineInitialState(){
 
 */
    	if c.isProcessRunning(true){
+      log.Println("IS RUNNING. SET UP STATUS")
    		c.state_machine.SetCurrent("up")
    	}else{
    		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
-   		if c.AutoStart == false {
+   		log.Println("ISN'T RUNNING, SET DOWN STATUS")
+      if c.AutoStart == false {
    			c.state_machine.SetCurrent("unmonitored")
    		}else{
    			c.state_machine.SetCurrent("down")
@@ -401,7 +437,21 @@ func (c*Process) isProcessRunning(force bool) bool{
 	  c.process_running = false 
   } 
  
-	//@process_running ||= signal_process(0)
+  if c.ActualPid() != 0 {
+    if !c.process_running {
+      process, err := os.FindProcess(c.ActualPid())
+      if err != nil {
+          //log.Printf("Failed to find process: %s\n", err)
+      } else {
+          err := process.Signal(syscall.Signal(0))
+          //log.Printf("process.Signal on pid %d returned: %v\n", c.ActualPid(), err)
+          if err == nil {
+            c.process_running = true
+          }
+      }
+    }     
+  }
+
 
 	// the process isn't running, so we should clear the PID
 	if !c.process_running {
@@ -437,8 +487,8 @@ func (c *Process) HandleUserCommand(cmd string){
 
 func (c *Process) StartProcess(){
     c.PreStartProcess()
-    log.Println( "Executing start command:", c.StartCommand)
     if c.isDaemonized() {
+      log.Println( "Executing start cmd DEMONIZED:", c.StartCommand)
     	/* daemon_id = System.daemonize(start_command, self.system_command_options)
         if daemon_id
           ProcessJournal.append_pid_to_journal(name, daemon_id)
@@ -450,7 +500,6 @@ func (c *Process) StartProcess(){
 
     }else{
     	/*
-
         # This is a self-daemonizing process
         with_timeout(start_grace_time, on_start_timeout) do
           result = System.execute_blocking(start_command, self.system_command_options)
@@ -460,9 +509,9 @@ func (c *Process) StartProcess(){
             logger.warning result.inspect
           end
         end
-
     	*/
-    
+        log.Println( "Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+
       	result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 				log.Println("EXEC RESULT :", result)
 				c.ListenerChannel <- result
@@ -618,6 +667,7 @@ func (c *Process) SignalProcess(code syscall.Signal) bool{
     log.Println( "No pid to kill" )
     return false
   }
+
   err := syscall.Kill(c.ActualPid(), code)
   var res bool
   if err == nil {

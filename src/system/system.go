@@ -15,10 +15,12 @@ import (
     "syscall"
 )
 
+var Store []map[string]interface{}
 
 func PidAlive(pid int) bool{
   err := syscall.Kill(pid, syscall.SIGHUP)
   if err != nil {
+    log.Println("PID ALIVE?", err)
     return false
   }else{
     return true
@@ -90,7 +92,7 @@ func PsAxu() ([]map[string]interface{} , error) {
 
       processes = append(processes, m )
     }
-
+    Store = processes
     return processes , err
 }
 
@@ -154,7 +156,55 @@ func GetChildren(parent_pid int64) ([]map[string]interface{}, error){
   return child_pids , err
 } 
 
-func Daemonize(cmd string, opts map[string]string){}
+func Daemonize(cmd string, opts map[string]string){
+  /*
+    # Returns the pid of the child that executes the cmd
+    def daemonize(cmd, options = {})
+      rd, wr = IO.pipe
+
+      if child = Daemonize.safefork
+        # we do not wanna create zombies, so detach ourselves from the child exit status
+        ::Process.detach(child)
+
+        # parent
+        wr.close
+
+        daemon_id = rd.read.to_i
+        rd.close
+
+        return daemon_id if daemon_id > 0
+
+      else
+        # child
+        rd.close
+
+        drop_privileges(options[:uid], options[:gid], options[:supplementary_groups])
+
+        # if we cannot write the pid file as the provided user, err out
+        exit unless can_write_pid_file(options[:pid_file], options[:logger])
+
+        to_daemonize = lambda do
+          # Setting end PWD env emulates bash behavior when dealing with symlinks
+          Dir.chdir(ENV["PWD"] = options[:working_dir].to_s)  if options[:working_dir]
+          options[:environment].each { |key, value| ENV[key.to_s] = value.to_s } if options[:environment]
+
+          redirect_io(*options.values_at(:stdin, :stdout, :stderr))
+
+          ::Kernel.exec(*Shellwords.shellwords(cmd))
+          exit
+        end
+
+        daemon_id = Daemonize.call_as_daemon(to_daemonize, nil, cmd)
+
+        File.open(options[:pid_file], "w") {|f| f.write(daemon_id)}
+
+        wr.write daemon_id
+        wr.close
+
+        ::Process::exit!(true)
+      end
+    end*/
+}
 
 
 func ParseElapsedTime(str string) int {
@@ -410,4 +460,10 @@ func IsPidAlive(pid int) bool{
     }
   }
   return res
+}
+
+func ResetData(){
+  if len(Store) > 0 {
+    Store =  make([]map[string]interface{}, 0)
+  }
 }

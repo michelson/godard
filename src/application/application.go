@@ -12,6 +12,8 @@ import(
   "strconv"
   "os/signal"
   "strings"
+  "time"
+  "system"
 )
 
 type Application struct {
@@ -33,6 +35,7 @@ type Application struct {
   PidsDir     string
   LogFile     string
   Sock        *socket.Socket
+  running     bool
 }
 
 
@@ -195,9 +198,23 @@ func (c*Application) StartServer(){
 
     go c.Sock.Run()
 
-    c.StartListener()
+    go c.StartListener()
 
+    c.Run()
 
+}
+
+func (c*Application) Run(){
+  c.running = true // set to false by signal trap
+  for {
+    if c.running {
+      system.ResetData()
+      for _ ,group := range(c.Groups) {
+        group.Tick()
+      }
+      time.Sleep(1 * time.Second)
+    }
+  }
 }
 
 //Private
@@ -210,6 +227,7 @@ func(c*Application) SetupSignalTraps(){
       // Wait for a SIGINT or SIGKILL:
       sig := <-cc
       log.Printf("Caught signal %s: shutting down.", sig)
+      c.running = false
       // Stop listening (and unlink the socket if unix type):
       c.Sock.Listener.Close()
       //os.Remove("/tmp/godard.sock")
