@@ -66,7 +66,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       @process_condition = ProcessConditions[@name].new(options)*/
       //process_condition := process_condition[c.Name]condition.ProcessCondition{}
       
-      log.Println("WATCH NAMMMAMAM", c.Name)
+      log.Println("WATCH", c.Name)
 
       conditions := make([]condition.ProcessCondition, 0 )
       
