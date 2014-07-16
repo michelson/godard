@@ -21,6 +21,7 @@ func NewMemoryUsage(options map[string]interface{}) *MemoryUsage{
   var below float64
   below = float64(options["below"].(float64))
   c := &MemoryUsage{Below: below}
+  log.Println("CREATING PROCESS CONDITION BELOW", c.Below)
   return c
 }
 

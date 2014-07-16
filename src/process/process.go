@@ -7,6 +7,7 @@ import (
 	watcher "watcher"
 	//trigger "trigger"
   "os"
+  "os/exec"
 	time "time"
 	"strings"
 	"sync"
@@ -125,6 +126,10 @@ func (c*Process) SetConfigOptions(options map[string]interface{}){
   if _,ok := options["auto_start"]; ok {
     c.AutoStart = options["auto_start"].(bool)
   }
+
+  if _,ok := options["pid_command"]; ok {
+    c.PidCommand = options["pid_command"].(string)
+  }
   
 }
 
@@ -152,7 +157,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
   		}
   	}
   	if trigger_exists {
-  		log.Println("add trigger here:", check_name, value)
+  		log.Println("ADD TRIGGER:", check_name, value)
   		c.AddTrigger(check_name, value)
   	}else{
   		//log.Println("add watch here:", check_name, value)
@@ -361,45 +366,35 @@ func (c *Process) AddWatch(name string, value interface{}) {
   c.Watches = append(c.Watches , condition)
 }
 
+type WatcherResponder struct {
+  Watcher *watcher.ConditionWatch
+  Response []string
+}
+
 //NOK
 func (c *Process) RunWatches() {
 
 	now := float64(time.Now().Unix())
-  //threads := make(map[*watcher.ConditionWatch]bool, 0)
+  threads := make([]*WatcherResponder, 0)
   log.Println("RUN WATCHES", c.Watches)
 	for _, watch := range(c.Watches){
-    log.Println("WATCH RES ON PID:",  c.ActualPid() , "VAL:", watch.Run(c.ActualPid(), now) )
-	}
+    pid := c.ActualPid()
+    wr := &WatcherResponder{Watcher: watch , Response: watch.Run(pid, now) }
+    log.Println("WATCH RES ON PID:", pid ,  wr.Watcher.Name , "VAL:", wr.Response )
+    threads = append(threads , wr )
+  }
 
-/*
-  threads = self.watches.collect do |watch|
-    [watch, Thread.new { Thread.current[:events] = watch.run(self.actual_pid, now) }]
-  end
-*/
+  for _ ,thread := range(threads){
+    if len(thread.Response) > 0 {
+      log.Println( thread.Watcher.Name, " dispatched: ", thread.Response )
+      for _,event := range(thread.Response) {
+        c.Dispatch(event , thread.Watcher.ToS())
+      }
+      
+    }  
+  }
 
-	/*
-   
-    @transitioned = false
-
-    threads.inject([]) do |events, (watch, thread)|
-      thread.join
-      if thread[:events].size > 0
-        logger.info "#{watch.name} dispatched: #{thread[:events].join(',')}"
-        thread[:events].each do |event|
-          events << [event, watch.to_s]
-        end
-      end
-      events
-    end.each do |(event, reason)|
-      break if @transitioned
-      self.dispatch!(event, reason)
-    end
-
-	*/
-
-  log.Println("RUN WATCHES NOW:", c.state_machine.Current())
-
-
+  //log.Println("RUN WATCHES NOW:", c.state_machine.Current())
 }
 
 func (c *Process) DetermineInitialState(){
@@ -726,10 +721,13 @@ func (c *Process) PidFromFile() (string, error) {
 
 }
 func (c *Process) PidFromCommand() (string, error) {
+  //ps -ef | awk '/memcached$/{ print $2 }'
   // pid = %x{#{pid_command}}.strip
   // (pid =~ /\A\d+\z/) ? pid.to_i : nil
-  log.Println("PID COMMAND NOT IMPLEMENTED YET")
-  return "none", nil
+  opts := strings.Split(c.PidCommand , " ")
+  out, err := exec.Command(opts[0],opts[1:]...).Output()
+  str := string(out)
+  return str, err
 }
 
 func (c *Process) SetActualPid(pid int64) {

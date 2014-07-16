@@ -3,7 +3,7 @@ package watcher
 import(
   "log"
   condition "condition"
-  //util "util"
+  "strings"
 )
 
 type HistoryValue struct {
@@ -20,33 +20,24 @@ type ConditionWatch struct {
   empty_array []interface{}
   LastRanAt float64
   include_children bool
-  ProcessCondition []condition.ProcessCondition //*condition.Condition
+  ProcessCondition []condition.ProcessCondition
   History []*HistoryValue
 }
 
 func NewConditionWatch(name string, options interface{}) *ConditionWatch{
 
   /*
-      @name = name
-
       @logger = options.delete(:logger)
-      @fires  = options.has_key?(:fires) ? Array(options.delete(:fires)) : [:restart]
-      @every  = options.delete(:every)
-      @times  = options.delete(:times) || [1,1]
-      @times  = [@times, @times] unless @times.is_a?(Array) # handles :times => 5
-      @include_children = options.delete(:include_children) || false
-
-      self.clear_history!
-
-      @process_condition = ProcessConditions[@name].new(options)
   */
 
       v := options.(map[string]interface{})
-      log.Println("CREATING", name ,"CONDITION", v["every"])
+      log.Println("CREATING", name ,"CONDITION EVERY", v["every"])
       c := &ConditionWatch{}
       
       if _,ok := v["fires"]; ok {
         c.Fires = append( c.Fires, v["fires"].(string) ) 
+      }else{
+        c.Fires = append( c.Fires, "restart" ) 
       }
       if _,ok := v["every"]; ok {
         c.Every = v["every"].(float64)
@@ -60,12 +51,9 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       c.Name  = name
 
       /*@include_children = options.delete(:include_children) || false
-
       self.clear_history!
+      */
 
-      @process_condition = ProcessConditions[@name].new(options)*/
-      //process_condition := process_condition[c.Name]condition.ProcessCondition{}
-      
       log.Println("WATCH", c.Name)
 
       conditions := make([]condition.ProcessCondition, 0 )
@@ -81,10 +69,6 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
             //conditions = []condition.ProcessCondition{ condition.NewCpuUsage( v ) }
       }
 
-      /*for _, cond := range conditions {
-        log.Println(cond.Check(100, false))
-      }*/
-
       c.ProcessCondition = conditions
 
       c.ClearHistory()
@@ -93,22 +77,6 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
 }
 
 func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
-    /*
-    def run(pid, tick_number = Time.now.to_i)
-      if @last_ran_at.nil? || (@last_ran_at + @every) <= tick_number
-        @last_ran_at = tick_number
-
-        value = @process_condition.run(pid, @include_children)
-        @history << HistoryValue.new(@process_condition.format_value(value), @process_condition.check(value))
-        self.logger.info(self.to_s)
-
-        return @fires if self.fired?
-      end
-      EMPTY_ARRAY
-    end
-    */
-
-    log.Println("RUNNING CONDITION EVERY", c.Every) 
 
     fires := make([]string, 0)
 
@@ -120,15 +88,15 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
       var formatted string
       var checked bool
       
-      //for _, cond := range c.ProcessCondition {
-        value, _   = c.ProcessCondition[0].Run(pid, false) 
-        formatted  = c.ProcessCondition[0].FormatValue(value)   
-        checked, _ = c.ProcessCondition[0].Check(value, false)   
-      //}
+      value, _   = c.ProcessCondition[0].Run(pid, false) 
+      formatted  = c.ProcessCondition[0].FormatValue(value)   
+      checked, _ = c.ProcessCondition[0].Check(value, false)   
 
+      //log.Println("VAL", formatted , "CRITI", checked)
       c.PushHistory( &HistoryValue{Value: formatted, Critical: checked} )
       
       if c.isFired(){
+        //log.Println("IS FIRED!!!!!" , c.Fires)
         fires = c.Fires 
       }        
     }
@@ -153,36 +121,30 @@ func (c*ConditionWatch) PushHistory(value *HistoryValue) {
 }
 
 func (c*ConditionWatch) isFired() bool {
-  // @history.count {|v| not v.critical} >= @times.first
+ 
   var count float64
   for _, h := range(c.History) {
     if h != nil {
-      log.Println("HISTORY:" , "val:", h.Value , "critical", h.Critical)
       if !h.Critical {
-        count = count + 1
+        count += 1
       }
+      log.Println("val:", h.Value , "critical", h.Critical, "times:", c.Times[1])
     }
   }
+
+  log.Println("HISTORY:", count)
   assert := count >= c.Times[1]
+
   return assert
 }
 
 func (c*ConditionWatch) ToS() string {
-  /* data = @history.collect {|v|  "#{v.value}#{'*' unless v.critical}"}.join(", ")
-   "#{@name}: [#{data}]\n"
-  */
-  var data_arr []string
-  //for _, h := range(c.History) {
-  for i := 0; i < len(c.History); i++ {
-    str := c.History[i].Value 
-    if !c.History[i].Critical {
-      str += "*"
+  data_arr := make([]string, 0)
+  for i,h := range(c.History){
+    if !c.History[i].Critical{
+      data_arr = append(data_arr, h.Value + "*")      
     }
-    data_arr[i] = str
   }
-  var str string 
-  for _ , r := range(data_arr){
-    str = str + ", " + r
-  }
+  str := strings.Join(data_arr , ", ")
   return str
 }
