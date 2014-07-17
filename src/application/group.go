@@ -79,7 +79,7 @@ func (c*Group) SendMethod(method string , process_name string){
       //threads << Thread.new { process.handle_user_command("#{event}") }
       go process.HandleUserCommand(method)
 
-       select {
+      select {
         case msg := <-process.ListenerChannel:
             log.Println("PROCESS RECEIVED ACTION:", msg)
             //args := strings.Split(msg, ":")
@@ -87,7 +87,7 @@ func (c*Group) SendMethod(method string , process_name string){
         case <-time.After(time.Second * 2):
             log.Println("timeout 1")   
         default:
-        }
+      }
 
       
     }else{
@@ -102,6 +102,27 @@ func (c*Group) SendMethod(method string , process_name string){
   log.Println("SOME AFFECTED ARE:" , affected)
 }
 
-func (c *Group) Status(process_name string) {
-  
-}
+/*
+      lines = []
+      if process_name.nil?
+        prefix = self.name ? "  " : ""
+        lines << "#{self.name}:" if self.name
+
+        self.processes.each do |process|
+          lines << "%s%s(pid:%s): %s" % [prefix, process.name, process.actual_pid, process.state]
+          if process.monitor_children?
+            process.children.each do |child|
+              lines << "  %s%s: %s" % [prefix, child.name, child.state]
+            end
+          end
+        end
+      else
+        self.processes.each do |process|
+          next if process_name != process.name
+          lines << "%s%s(pid:%s): %s" % [prefix, process.name, process.actual_pid, process.state]
+          lines << process.statistics.to_s
+        end
+      end
+      lines << ""
+*/  
+

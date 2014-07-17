@@ -264,7 +264,7 @@ func checkError(err error) {
 
 //http://stackoverflow.com/questions/10781516/how-to-pipe-several-commands
 //http://stackoverflow.com/questions/10385551/get-exit-code-go
-func disabledExecuteBlocking(command string , options map[string]interface{}) map[string]int64{
+func disabledExecuteBlocking(command string , options map[string]interface{}) map[string]string{
     c1 := exec.Command(command)
   
     r, w := io.Pipe() 
@@ -280,7 +280,7 @@ func disabledExecuteBlocking(command string , options map[string]interface{}) ma
     c1.Start()
     c1.Wait()
 
-    m := make(map[string]int64, 0)
+    m := make(map[string]string, 0)
 
     if err := c1.Wait(); err != nil {
         if exiterr, ok := err.(*exec.ExitError); ok {
@@ -292,20 +292,21 @@ func disabledExecuteBlocking(command string , options map[string]interface{}) ma
             // an ExitStatus() method with the same signature.
             if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
               log.Printf("Exit Status: %d", status.ExitStatus())
-              var i64 int64
-              i64 = int64(status.ExitStatus())
+              var i64 string
+              i64 = string(status.ExitStatus())
               m["exit_status"] = i64
             }
         } else {
-           m["exit_status"] = 0 //status.ExitStatus()
+           m["exit_status"] = "0" //status.ExitStatus()
            // log.Fatalf("cmd.Wait: %v", err)
         }
     }
 
     w.Close()
     //so,  := io.Copy(os.Stdout, &b2)
-    m["stdout"], _ = io.Copy(os.Stdout, &b2)
-    m["stderr"], _ = io.Copy(os.Stderr, &b1)
+    //m["stdout"], _ = io.Copy(os.Stdout, &b2)
+    //m["stderr"], _ = io.Copy(os.Stderr, &b1)
+    m["exit_code"] = "0"
     log.Println("EXEC OPTIONS:", options)
     return m
 }
@@ -321,7 +322,8 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
     m := make(map[string]string)
     subProcess := exec.Command(args[0], args[1:]...) //Just for testing, replace with your subProcess
     
-    stdin, err := subProcess.StdinPipe()
+    _, err := subProcess.StdinPipe()
+    /*
     if err != nil {
         log.Println(err) //replace with logger, or anything you want
     }
@@ -329,10 +331,10 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
     stdout, err := subProcess.StdoutPipe()
     if err != nil {
         log.Println(err) //replace with logger, or anything you want
-    }
+    }*/
 
-    //defer subProcess.Wait() 
-    defer stdin.Close() // the doc says subProcess.Wait will close it, but I'm not sure, so I kept this line
+    defer subProcess.Wait() 
+    //defer stdin.Close() // the doc says subProcess.Wait will close it, but I'm not sure, so I kept this line
 
     subProcess.Stdout = os.Stdout
     subProcess.Stderr = os.Stderr
@@ -342,24 +344,26 @@ func ExecuteBlocking(command string , options map[string]interface{}) map[string
         log.Println("An error occured: ", err) //replace with logger, or anything you want
     }
 
-    //io.WriteString(stdin, "4\n")
-    //log.Println("STDIN" , stdin)
-
-    buf := new(bytes.Buffer)
+    /*buf := new(bytes.Buffer)
     buf.ReadFrom(stdout)
-    s := buf.String()
-    //log.Println(s)
-    //log.Println("STDERR:",subProcess.Stderr)
-    //log.Println("STDIN:",subProcess.Stdin)
-    subProcess.Wait()
+    s := buf.String()*/
+    
+    //subProcess.Wait()
 
-    m["stdout"] = s
+    m["stdout"] = "blabla"
     m["exit_code"] = "0"
     //m["stdin"] = sin
 
     //log.Println(m)
     //log.Println("END") //for debug
     //log.Println("EXEC OPTIONS:", options)
+    return m
+}
+
+func aaExecuteBlocking(command string , options map[string]interface{}) map[string]string{
+    m := make(map[string]string)
+    m["stdout"] = "ss"
+    m["exit_code"] = "0"
     return m
 }
 /*

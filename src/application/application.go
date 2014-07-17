@@ -145,21 +145,7 @@ func (c*Application) Load(){
       end
   end*/
 }
-
-func (c*Application) StartListener(){
-
-  for {
-   select {
-    case msg := <-c.Sock.ListenerChannel:
-        log.Println("received message:", msg)
-        args := strings.Split(msg, ":")
-        c.sendToProcessOrGroup(args[0], args[1:]...)
-    default:
-        
-    }
-  }
-}    
-
+   
 func (c*Application) StartServer(){
     
     //self.kill_previous_bluepill
@@ -204,15 +190,33 @@ func (c*Application) StartServer(){
 
 }
 
+func (c*Application) StartListener(){
+
+  for {
+   select {
+    case msg := <-c.Sock.ListenerChannel:
+        log.Println("received message:", msg)
+        args := strings.Split(msg, ":")
+        c.sendToProcessOrGroup(args[0], args[1:]...)
+    //case <-time.After(time.Second * 30):
+    //    log.Println("timeout 1")  
+    default:
+        
+    }
+  }
+} 
+
 func (c*Application) Run(){
   c.running = true // set to false by signal trap
+
   for {
+    log.Println("APP RUNNING FOR:", c.running)
     if c.running {
       system.ResetData()
       for _ ,group := range(c.Groups) {
         group.Tick()
+        time.Sleep(1 * time.Second)
       }
-      time.Sleep(1 * time.Second)
     }
   }
 }
@@ -262,13 +266,15 @@ func (c *Application) sendToProcessOrGroup(method string , names...string){
   }
 
   if len(group_name) == 0 && len(process_name) == 0 {
+    
     for _ , group := range(c.Groups){
       log.Println("THIS GROUP IS READY TO ,", group)
       group.SendMethod(method , "")
     }
+
   } else if c.GroupInString(group_name){
-    // self.groups[group_name].send(method, process_name)
     c.Groups[group_name].SendMethod(method ,process_name)
+
   } else if len(process_name) == 0 {
     // they must be targeting just by process name
     process_name = group_name

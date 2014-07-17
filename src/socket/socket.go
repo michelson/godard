@@ -75,12 +75,7 @@ func (c *Socket) EchoServer(conn net.Conn) {
 
       data := buf[0:nr]
       println("Server got:", string(data))
-     /*select {
-      case c.ListenerChannel <- string(data):
-          log.Println("sock sent message", string(data))
-      default:
-          log.Println("no message sent from sock")
-      }
+     /*
       */
       go func(data string){
         c.ListenerChannel <- string(data)

@@ -15,7 +15,6 @@ func NewCpuUsage(options map[string]interface{}) *CpuUsage{
   below = float64(options["below"].(float64))
   c := &CpuUsage{Below: below}
   log.Println("CREATING PROCESS CONDITION BELOW", c.Below)
-
   return c
 }
 

@@ -19,6 +19,8 @@ import (
   //"sync/atomic"
 )
 
+var wg sync.WaitGroup
+
 type Process struct {
 
 	Name string
@@ -89,6 +91,8 @@ type Process struct {
 	state_machine *fsm.FSM
 
   ListenerChannel chan map[string]string
+
+  Transitioned bool
 
 }
 
@@ -192,6 +196,8 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	  super() # no arguments intentional
 	*/
 
+
+
 	// https://github.com/looplab/fsm/blob/master/fsm_test.go
 	c.state_machine = fsm.NewFSM(
 	    "unmonitored",
@@ -218,26 +224,23 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	    },
 	    fsm.Callbacks{
 	    		"before_event": func(e *fsm.Event) {
+            log.Println("EXEC STATE CHANGE FROM", c.state_machine.Current())
 						c.NotifyTriggers( c.state_machine.Current() )
-						if c.state_machine.Current() != "stopping" {
+						if !c.state_machine.Is("stopping") {
 							c.CleanThreads()
 						}
 					},
 					"after_event": func(e *fsm.Event) {
-          
-						if c.state_machine.Current() == "starting" {
+            log.Println("EXEC STATE CHANGE TO", c.state_machine.Current())
+						if c.state_machine.Is("starting") {
 							c.StartProcess()
 						}
 
-						if c.state_machine.Current() == "stopping" {
+						if c.state_machine.Is("stopping"){
 							c.StopProcess()
 						}
 
-						if c.state_machine.Current() == "stopping" {
-							c.StopProcess()
-						}
-
-						if c.state_machine.Current() == "restarting" {
+						if c.state_machine.Is("restarting") {
 							c.RestartProcess()
 						}
 
@@ -261,7 +264,7 @@ func (c *Process) Tick(){
 		
 		// Deal with thread cleanup here since the stopping state isn't used
     //clean_threads if self.unmonitored?
-    if c.state_machine.Current() == "unmonitored"{
+    if c.state_machine.Is("unmonitored"){
 			c.CleanThreads()
     }
 
@@ -325,6 +328,19 @@ func (c *Process) RecordTransition(transition string) {
       end
 
 	*/
+
+  c.Transitioned = true
+  for _,watch := range(c.Watches){
+    watch.ClearHistory()
+  }
+  /*
+    # Also, when a process changes state, we should re-populate its child list
+    if self.monitor_children?
+      self.logger.warning "Clearing child list"
+      self.children.clear
+    end
+  */
+
   log.Println("TRANSITION TO: ", c.state_machine.Current())
 
 }
@@ -384,11 +400,15 @@ func (c *Process) RunWatches() {
     threads = append(threads , wr )
   }
 
+  c.Transitioned = false
   for _ ,thread := range(threads){
     if len(thread.Response) > 0 {
       log.Println( thread.Watcher.Name, " dispatched: ", thread.Response )
       for _,event := range(thread.Response) {
-        c.Dispatch(event , thread.Watcher.ToS())
+        if c.Transitioned {
+          break
+        }
+         c.Dispatch(event , thread.Watcher.ToS())
       }
       
     }  
@@ -452,7 +472,7 @@ func (c*Process) isProcessRunning(force bool) bool{
 	if !c.process_running {
 		c.ClearPid()	
 	}
-	
+	log.Println("PROCESS IS RUNNING?", c.process_running)
   return c.process_running
 }
 
@@ -467,7 +487,7 @@ func (c *Process) HandleUserCommand(cmd string){
     	  }
     case "stop": 
         c.StopProcess()
-        c.Dispatch("unmonitor", "user initiated")
+        c.Dispatch("unmonitor", "user unmonitor")
     case "restart": c.RestartProcess()
     case "unmonitor": 
         // When the user issues an unmonitor cmd, reset any triggers so that
@@ -509,7 +529,8 @@ func (c *Process) StartProcess(){
 
       	result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 				log.Println("EXEC RESULT :", result)
-				c.ListenerChannel <- result
+				//c.ListenerChannel <- result
+
         //result = System.execute_blocking(start_command, self.system_command_options)
 
         //unless result[:exit_code].zero?
@@ -542,7 +563,6 @@ func (c *Process) StopProcess(){
       //ProcessJournal.append_pid_to_journal(name, child_pid)
       log.Println("Stop process : " , child_pid)
     }*/
-
   }
   if len(c.StopCommand) > 0 {
     cmd := c.PrepareCommand(c.StopCommand)
@@ -623,8 +643,16 @@ func (c *Process) RestartProcess(){
 
 	} else {
 		log.Println("No RestartCommand specified. Must stop and start to restart")
-    c.StopProcess()
-    c.StartProcess()
+    
+    wg.Add(1)
+    
+    go func(){
+      c.StopProcess()
+      c.StartProcess()
+      defer wg.Done()
+    }()
+
+    wg.Wait()
 	}
 
 }
@@ -749,12 +777,15 @@ func (c *Process) SkipTicksFor(seconds int) {
     i.e. if two calls for skip_ticks_for come in for 5 and 10, should it skip for 10 or 15?
     self.skip_ticks_until = (self.skip_ticks_until || Time.now.to_i) + seconds.to_i
   */
+
     var secs int64
     secs = int64(seconds) 
     if c.skip_ticks_until > 0 {
       c.skip_ticks_until = time.Now().Unix() + secs
+      log.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
     }else{
       c.skip_ticks_until = c.skip_ticks_until + secs
+      log.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
     }
      
 }

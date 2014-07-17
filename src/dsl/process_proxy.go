@@ -21,8 +21,9 @@ func NewProcessProxy(process_name string, attributes map[string]interface{}) *Pr
     for k, v := range m {
       switch vv := v.(type) {
       case interface{}:
-        //log.Println(k, "is interface", vv)
-        c.Checks(k , vv)
+        log.Println(k, "is interface", vv)
+        //c.Checks(k , vv)
+        c.Watches[k] = vv
       default:
         log.Println(k, "is of a type I don't know how to handle")
       }
@@ -30,11 +31,6 @@ func NewProcessProxy(process_name string, attributes map[string]interface{}) *Pr
   }
   
   return c
-}
-
-
-func (c*ProcessProxy) Checks(name string, options interface{}) {
-  c.Watches[name] = options
 }
 
 /*
