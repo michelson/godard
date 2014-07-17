@@ -4,6 +4,8 @@ import(
   "log"
   condition "condition"
   "strings"
+  "util"
+  "time"
 )
 
 type HistoryValue struct {
@@ -15,7 +17,7 @@ type ConditionWatch struct {
   Logger string
   Name string
   Fires []string
-  Every float64
+  Every time.Duration
   Times []float64
   empty_array []interface{}
   LastRanAt float64
@@ -31,7 +33,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
   */
 
       v := options.(map[string]interface{})
-      log.Println("CREATING", name ,"CONDITION EVERY", v["every"])
+      //log.Println("CREATING", name ,"CONDITION EVERY", v["every"])
       c := &ConditionWatch{}
       
       if _,ok := v["fires"]; ok {
@@ -40,7 +42,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
         c.Fires = append( c.Fires, "restart" ) 
       }
       if _,ok := v["every"]; ok {
-        c.Every = v["every"].(float64)
+        c.Every, _ = util.TimeParse(v["every"].(string))
       }
       if _,ok := v["times"]; ok {
         arr := make([]float64, 2)
@@ -54,7 +56,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch{
       self.clear_history!
       */
 
-      log.Println("WATCH", c.Name)
+      //log.Println("WATCH", c.Name)
 
       conditions := make([]condition.ProcessCondition, 0 )
       
@@ -80,8 +82,10 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
 
     fires := make([]string, 0)
 
-    if c.LastRanAt == 0 || (c.LastRanAt + c.Every) <= tick_number {
-      
+    var lr int
+    lr = int(c.LastRanAt) 
+    if c.LastRanAt == 0 || (c.LastRanAt + c.Every.Seconds()) <= tick_number {
+      log.Println("TIME DURATION", (time.Duration(lr) + c.Every.Seconds()), "VS" , tick_number )
       c.LastRanAt = tick_number
 
       var value float64
@@ -92,11 +96,10 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
       formatted  = c.ProcessCondition[0].FormatValue(value)   
       checked, _ = c.ProcessCondition[0].Check(value, false)   
 
-      //log.Println("VAL", formatted , "CRITI", checked)
+      //log.Println("VAL", formatted , "CRITIC", checked)
       c.PushHistory( &HistoryValue{Value: formatted, Critical: checked} )
       
       if c.isFired(){
-        //log.Println("IS FIRED!!!!!" , c.Fires)
         fires = c.Fires 
       }        
     }
@@ -106,7 +109,6 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
 }
 
 func (c*ConditionWatch) ClearHistory() {
-  // @history = Util::RotationalArray.new(@times.last)
   var capacity = int(c.Times[1])
   arr := make([]*HistoryValue , capacity)
   c.History = arr
@@ -128,11 +130,11 @@ func (c*ConditionWatch) isFired() bool {
       if !h.Critical {
         count += 1
       }
-      log.Println("val:", h.Value , "critical", h.Critical, "times:", c.Times[1])
+      //log.Println("val:", h.Value , "critical", h.Critical, "times:", c.Times[1])
     }
   }
 
-  log.Println("HISTORY:", count)
+  //log.Println("HISTORY:", count)
   assert := count >= c.Times[1]
 
   return assert

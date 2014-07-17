@@ -210,7 +210,7 @@ func (c*Application) Run(){
   c.running = true // set to false by signal trap
 
   for {
-    log.Println("APP RUNNING FOR:", c.running)
+    //log.Println("APP RUNNING FOR:", c.running)
     if c.running {
       system.ResetData()
       for _ ,group := range(c.Groups) {
