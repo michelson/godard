@@ -81,6 +81,7 @@ We added a line that checks every 10 seconds to make sure the cpu usage of this 
 To watch memory usage, we just add one more line:
 
 ```json
+
   {
     "processes": 
     [ {
