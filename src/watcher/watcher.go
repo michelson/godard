@@ -82,10 +82,8 @@ func (c*ConditionWatch) Run(pid int, tick_number float64) []string {
 
     fires := make([]string, 0)
 
-    var lr int
-    lr = int(c.LastRanAt) 
     if c.LastRanAt == 0 || (c.LastRanAt + c.Every.Seconds()) <= tick_number {
-      log.Println("TIME DURATION", (time.Duration(lr) + c.Every.Seconds()), "VS" , tick_number )
+      log.Println("TIME DURATION", (c.LastRanAt + c.Every.Seconds()), "VS" , tick_number )
       c.LastRanAt = tick_number
 
       var value float64
