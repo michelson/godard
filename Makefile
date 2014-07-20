@@ -11,7 +11,7 @@ deps:
 	./make.sh deps
 
 test:
-	ls ./src | grep -v "\." | sed 's/\///g' | xargs go test -cover
+	./make.sh test
 
 convey:
 	./bin/goconvey --depth=2

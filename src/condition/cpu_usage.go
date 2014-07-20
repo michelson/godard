@@ -2,9 +2,15 @@ package condition
 
 import (
   system "system"
-  "strconv"
+  //"strconv"
   "log"
+  "fmt"
 )
+
+//const mb int64          = 1024 ** 2
+const format_str string = "%d%s"
+const mb_label  string  = "MB"
+const kb_label  string  = "KB"
 
 type CpuUsage struct {
   Below float64
@@ -30,25 +36,9 @@ func (c *CpuUsage) Check(value float64 , include_children bool) (bool , error) {
 }
 
 func (c *CpuUsage) FormatValue(value float64) string{
-   var int_val int
-   int_val = int(value)
-   var str string
-   str = strconv.Itoa(int_val) 
-   return str
+  var int_val int
+  int_val = int(value)
+  out := string("")
+  out = fmt.Sprintf("%d%s", int_val, "%" )
+  return out
 }
-
-/*
-      def initialize(options = {})
-        @Below = options[:below]
-      end
-
-      def run(pid, include_children)
-        # third col in the ps axu output
-        System.cpu_usage(pid, include_children).to_f
-      end
-
-      def check(value)
-        value < @below
-      end
-    end
-*/

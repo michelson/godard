@@ -1,12 +1,5 @@
 package condition 
 
- /* MB := 1024 ** 2
-  FORMAT_STR := "%d%s"
-  MB_LABEL := "MB"
-  KB_LABEL := "KB"
-
-*/
-
 import(
   "os"
   "time"

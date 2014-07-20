@@ -10,7 +10,7 @@ package condition
   import (
     system "system"
     "log"
-    "strconv"
+    "fmt"
   )
 
 type MemoryUsage struct {
@@ -41,17 +41,14 @@ func (c *MemoryUsage) Check(value float64, include_children bool) (bool, error) 
 }
 
 func (c *MemoryUsage) FormatValue(value float64) string{
-
-/*
-    if value.kilobytes >= MB
-      FORMAT_STR % [(value / 1024).round, MB_LABEL]
-    else
-      FORMAT_STR % [value, KB_LABEL]
-    end
-*/
-   var int_val int
-   int_val = int(value)
-   var str string
-   str = strconv.Itoa(int_val) 
-   return str
+  var int_val int
+  int_val = int(value)
+  out := string("")
+  //MB = 1024 ** 2
+  if int_val * 1024 >= 1048576 {
+    out = fmt.Sprintf(format_str, (int_val/1024), mb_label )
+  }else{
+    out = fmt.Sprintf(format_str, int_val, kb_label )
+  }
+  return out
 }
