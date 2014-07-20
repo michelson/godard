@@ -277,7 +277,7 @@ func (c *Process) Tick(){
     	c.state_machine.Event("tick_down")	
     }
     
-    log.Println("CURRENT STATE:", c.state_machine.Current())
+    //log.Println("CURRENT STATE:", c.state_machine.Current())
 
 		if c.isUp() {
 			c.RunWatches()
@@ -387,16 +387,15 @@ type WatcherResponder struct {
   Response []string
 }
 
-//NOK
 func (c *Process) RunWatches() {
 
 	now := float64(time.Now().Unix())
   threads := make([]*WatcherResponder, 0)
-  log.Println("RUN WATCHES", c.Watches)
+  //log.Println("RUN WATCHES", c.Watches)
 	for _, watch := range(c.Watches){
     pid := c.ActualPid()
     wr := &WatcherResponder{Watcher: watch , Response: watch.Run(pid, now) }
-    log.Println("WATCH RES ON PID:", pid ,  wr.Watcher.Name , "VAL:", wr.Response )
+    //log.Println("WATCH RES ON PID:", pid ,  wr.Watcher.Name , "VAL:", wr.Response )
     threads = append(threads , wr )
   }
 
@@ -418,26 +417,19 @@ func (c *Process) RunWatches() {
 }
 
 func (c *Process) DetermineInitialState(){
-/*
-      if self.process_running?(true)
-        self.state = 'up'
-      else
-        self.state = (auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
-      end
 
-*/
-   	if c.isProcessRunning(true){
-      log.Println("IS RUNNING. SET UP STATUS")
-   		c.state_machine.SetCurrent("up")
-   	}else{
-   		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
-   		log.Println("ISN'T RUNNING, SET DOWN STATUS")
-      if c.AutoStart == false {
-   			c.state_machine.SetCurrent("unmonitored")
-   		}else{
-   			c.state_machine.SetCurrent("down")
-   		}
-   	}
+  if c.isProcessRunning(true){
+    log.Println("IS RUNNING. SET UP STATUS")
+   	c.state_machine.SetCurrent("up")
+  }else{
+  		//(auto_start == false) ? 'unmonitored' : 'down' # we need to check for false value
+  	log.Println("ISN'T RUNNING, SET DOWN STATUS")
+    if c.AutoStart == false {
+  			c.state_machine.SetCurrent("unmonitored")
+  		}else{
+  			c.state_machine.SetCurrent("down")
+  		}
+   }
 
    	log.Println("DETERMINE INITAL STATE", c.state_machine.Current())
 
@@ -472,7 +464,7 @@ func (c*Process) isProcessRunning(force bool) bool{
 	if !c.process_running {
 		c.ClearPid()	
 	}
-	log.Println("PROCESS IS RUNNING?", c.process_running)
+	//log.Println("PROCESS IS RUNNING?", c.process_running)
   return c.process_running
 }
 
@@ -537,8 +529,6 @@ func (c *Process) StartProcess(){
         //  logger.warning "Start command execution returned non-zero exit code:"
         //  logger.warning result.inspect
         //end
-
-
     }
 
     c.SkipTicksFor(c.StartGraceTime)
@@ -548,7 +538,7 @@ func (c *Process) PreStartProcess(){
 	if c.pre_start_command != ""{
 		log.Println("Executing pre start command:", c.pre_start_command )
 		result := system.ExecuteBlocking(c.pre_start_command, c.SystemCommandOptions())
-		log.Println("PRE START COMMAND RESULT :", result)
+		//log.Println("PRE START COMMAND RESULT :", result)
 		if result["exit_code"] != "0" {
 			log.Println("Pre start command execution returned non-zero exit code:")
 			log.Println(result)
@@ -569,7 +559,7 @@ func (c *Process) StopProcess(){
     log.Println("Executing stop command:", cmd)
 
     result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
-    log.Println("EXEC RESULT:", result)
+    //log.Println("EXEC RESULT:", result)
     c.ListenerChannel <- result
     /*
     with_timeout(stop_grace_time, "stop") do
@@ -671,11 +661,6 @@ func (c *Process) isMonitorChildren() bool{
 }
 
 func (c *Process) SignalProcess(code syscall.Signal) bool{
-  //from config example: process.stop_signals = [:quit, 30.seconds, :term, 5.seconds, :kill]
-  //SIGEMT  SIGFPE  SIGHUP SIGILL SIGINFO  SIGINT SIGIO                       = 0x17
-  //SIGIOT  SIGKILL SIGLWP SIGPIPE SIGPROF SIGQUIT                     = 0x3
-  //SIGSEGV SIGSTOP SIGSYS SIGTERM SIGTHR SIGTRAP  
-
   /*
   HUP (hang up)
   INT (interrupt)

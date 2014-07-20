@@ -22,6 +22,12 @@ func TestTimeParse(t *testing.T)  {
       t.Error("Expected 1 min, got ", v2)
   }
 
+  v4, _ := TimeParse("1.5.minutes")
+  f := float64(1.5)
+  if v4 != time.Minute * time.Duration(f) {
+      t.Error("Expected 1 min, got ", v4)
+  }
+
 }
 
 func TestFailingTimeParse(t *testing.T)  {

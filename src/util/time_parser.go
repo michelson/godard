@@ -10,7 +10,17 @@ import(
 
 func TimeParse(input string) (time.Duration, error) {
   
-  parts := strings.Split(input, ".") 
+  count := strings.Count(input, ".")
+  //fmt.Println(count)
+  var parts []string 
+  
+  if count == 1 {
+    parts = strings.Split(input, ".") 
+  }else if count == 2{
+    index := strings.LastIndex(input , ".")
+    parts = append(parts, input[:index])
+    parts = append(parts, input[index+1:])
+  }
   
   var tt time.Duration
 
@@ -18,11 +28,15 @@ func TimeParse(input string) (time.Duration, error) {
      return tt, errors.New("can't split values")    
   }
 
-  multiplier, err := strconv.Atoi(parts[0])
+  m, err := strconv.ParseFloat(parts[0], 64)
+
   
   if err != nil {
      return tt, errors.New("can't convert multipler to integer")    
   }
+
+  var multiplier float64
+  multiplier = float64(m)
 
   switch parts[1] {
     case "seconds", "second", "secs", "s":
@@ -37,6 +51,7 @@ func TimeParse(input string) (time.Duration, error) {
 
   return tt, nil
 }
+
 
 /*func main(){
   fmt.Println(TimeParse("1.seconds"))

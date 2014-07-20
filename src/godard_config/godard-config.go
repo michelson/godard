@@ -16,6 +16,7 @@ type GodardConfig struct {
 	Foreground      bool										 `json:"foreground"`
 	LogFile         string									 `json:"log_file"`	
 	BaseDir         string									 `json:"base_dir"`	
+	KillTimeout     int 										 `json:"kill_timeout"`	
 }
 
 func ParseConfigFromFile(filename string) *GodardConfig {

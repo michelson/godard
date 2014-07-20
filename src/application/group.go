@@ -38,32 +38,11 @@ func (c *Group) DetermineInitialState() {
   }
 }
 
-
-//[:start, :unmonitor, :stop, :restart]
-func (c *Group) Start(process_name string) {
-  log.Println("Start Group")
-}
-
-func (c *Group) UnMonitor(process_name string) {
-  log.Println("UnMonitor Group")
-}
-
-func (c *Group) Stop(process_name string) {
-  log.Println("Stop Group")
-}
-
-func (c *Group) Restart(process_name string) {
-  log.Println("Restart Group")
-}
-
 func (c*Group) SendMethod(method string , process_name string){
   log.Println("SEND",method,"METHOD TO" , process_name, " IS GOING TO BE SO COOL")
-  log.Println(c.Processes)
-  //threads = []
+  //log.Println(c.Processes)
 
   var affected []string 
-  //var threads  []map[string]int64
-  //threads = make([]map[string]int64 ,0)
   for _ , process := range(c.Processes){
     if len(process_name) > 0 && process_name != process.Name{
       continue  
@@ -101,28 +80,3 @@ func (c*Group) SendMethod(method string , process_name string){
   // affected 
   log.Println("SOME AFFECTED ARE:" , affected)
 }
-
-/*
-      lines = []
-      if process_name.nil?
-        prefix = self.name ? "  " : ""
-        lines << "#{self.name}:" if self.name
-
-        self.processes.each do |process|
-          lines << "%s%s(pid:%s): %s" % [prefix, process.name, process.actual_pid, process.state]
-          if process.monitor_children?
-            process.children.each do |child|
-              lines << "  %s%s: %s" % [prefix, child.name, child.state]
-            end
-          end
-        end
-      else
-        self.processes.each do |process|
-          next if process_name != process.name
-          lines << "%s%s(pid:%s): %s" % [prefix, process.name, process.actual_pid, process.state]
-          lines << process.statistics.to_s
-        end
-      end
-      lines << ""
-*/  
-
