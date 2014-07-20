@@ -16,6 +16,7 @@ import (
 	fsm "github.com/looplab/fsm"
   "strconv"
   "errors"
+  "util"
   //"sync/atomic"
 )
 
@@ -43,6 +44,9 @@ type Process struct {
 	StopCommand string
 	RestartCommand string
 
+  CacheActualPid bool
+  MonitorChildren bool
+
 	Stdout string
 	Stderr string
 	Stdin string
@@ -52,25 +56,23 @@ type Process struct {
 	WorkingDir string
 	Environment map[string]string
 
-	StartGraceTime int
-	StopGraceTime int
-	RestartGraceTime int
+	StartGraceTime time.Duration
+	StopGraceTime time.Duration
+	RestartGraceTime time.Duration
+
+  PreStartCommand string
 
 	Uid string
 	Gid string
 
 	actual_pid int64
-	cache_actual_pid bool
-
-	monitor_children bool
-	child_process_factory string
 
 	PidCommand string
 	AutoStart bool
 
-	SupplementaryGroups string
+	SupplementaryGroups []string
 
-	StopSignals string
+	StopSignals []string
 
 	OnStartTimeout string
 
@@ -115,6 +117,30 @@ func (c*Process) SetConfigOptions(options map[string]interface{}){
     c.StartCommand = options["start_command"].(string)
   }
 
+  if _,ok := options["pre_start_command"]; ok {
+    c.PreStartCommand = options["pre_start_command"].(string)
+  }
+
+  if _,ok := options["stop_command"]; ok {
+    c.StopCommand = options["stop_command"].(string)
+  }
+
+  if _,ok := options["restart_command"]; ok {
+    c.RestartCommand = options["restart_command"].(string)
+  }
+
+  if _,ok := options["stdout"]; ok {
+    c.Stdout = options["stdout"].(string)
+  }
+
+  if _,ok := options["stderr"]; ok {
+    c.Stderr = options["stderr"].(string)
+  }
+
+  if _,ok := options["stdin"]; ok {
+    c.Stdin = options["stdin"].(string)
+  }
+
   if _,ok := options["pid_file"]; ok {
     c.PidFile = options["pid_file"].(string)
   }
@@ -127,12 +153,76 @@ func (c*Process) SetConfigOptions(options map[string]interface{}){
     c.Daemonize = options["daemonize"].(bool)
   }
 
+  //if _,ok := options["environment"]; ok {
+  //  c.Environment = options["environment"].(bool)
+  //}
+
   if _,ok := options["auto_start"]; ok {
     c.AutoStart = options["auto_start"].(bool)
   }
 
   if _,ok := options["pid_command"]; ok {
     c.PidCommand = options["pid_command"].(string)
+  }
+
+  if _,ok := options["start_grace_time"]; ok {
+    c.StartGraceTime, _ = util.TimeParse(options["start_grace_time"].(string))
+  }
+
+  if _,ok := options["stop_grace_time"]; ok {
+    c.StopGraceTime, _ = util.TimeParse(options["stop_grace_time"].(string))
+  }
+
+  if _,ok := options["restart_grace_time"]; ok {
+    c.RestartGraceTime, _ = util.TimeParse(options["restart_grace_time"].(string))
+  }
+
+  if _,ok := options["on_start_timeout"]; ok {
+    c.OnStartTimeout = options["on_start_timeout"].(string)
+  }
+
+  if _,ok := options["gid"]; ok {
+    c.Gid = options["gid"].(string)
+  }
+
+  if _,ok := options["uid"]; ok {
+    c.Uid = options["uid"].(string)
+  }
+
+  if _,ok := options["cache_actual_pid"]; ok {
+    c.CacheActualPid = options["cache_actual_pid"].(bool)
+  }
+
+  if _,ok := options["monitor_children"]; ok {
+    c.MonitorChildren = options["monitor_children"].(bool)
+  }
+
+  if _,ok := options["pid_command"]; ok {
+    c.PidCommand = options["pid_command"].(string)
+  }
+
+  if _,ok := options["supplementary_groups"]; ok {
+    c.SupplementaryGroups = options["supplementary_groups"].([]string)
+  }
+
+  if _,ok := options["stop_signals"]; ok {
+    c.StopSignals = options["stop_signals"].([]string)
+  }
+
+  if _,ok := options["group_start_noblock"]; ok {
+    c.Group_start_noblock = options["group_start_noblock"].(bool)
+  }
+
+  if _,ok := options["group_restart_noblock"]; ok {
+    c.Group_restart_noblock = options["group_restart_noblock"].(bool)
+  }
+
+  if _,ok := options["group_stop_noblock"]; ok {
+    c.Group_stop_noblock = options["group_stop_noblock"].(bool)
+  }
+
+  if _,ok := options["group_unmonitor_noblock"]; ok {
+    c.Group_unmonitor_noblock = options["group_unmonitor_noblock"].(bool)
   }
   
 }
@@ -171,11 +261,11 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
   }
 
   // These defaults are overriden below if it's configured to be something else.
-  c.monitor_children =  false
-  c.cache_actual_pid = true
-  c.StartGraceTime = 3
-  c.StopGraceTime = 3
-  c.RestartGraceTime = 3
+  c.MonitorChildren =  false
+  c.CacheActualPid = true
+  c.StartGraceTime = time.Second * 3
+  c.StopGraceTime = time.Second * 3
+  c.RestartGraceTime = time.Second * 3
   //@environment = {}
   c.OnStartTimeout = "start"
   c.Group_start_noblock = true
@@ -281,7 +371,7 @@ func (c *Process) Tick(){
 
 		if c.isUp() {
 			c.RunWatches()
-			if c.monitor_children {
+			if c.MonitorChildren {
          c.RefreshChildren()
          for _ , child := range(c.Children){
           	child.Tick()
@@ -531,7 +621,7 @@ func (c *Process) StartProcess(){
         //end
     }
 
-    c.SkipTicksFor(c.StartGraceTime)
+    c.SkipTicksFor(c.StartGraceTime.Seconds())
 }
 
 func (c *Process) PreStartProcess(){
@@ -547,7 +637,7 @@ func (c *Process) PreStartProcess(){
 }
 //NOK
 func (c *Process) StopProcess(){
-  if c.monitor_children {
+  if c.MonitorChildren {
     /*childs , _ := system.GetChildren(c.actual_pid)
     for child_pid, _ := range(childs){
       //ProcessJournal.append_pid_to_journal(name, child_pid)
@@ -604,7 +694,7 @@ func (c *Process) StopProcess(){
   //ProcessJournal.kill_all_from_journal(name) # finish cleanup
   c.UnlinkPid() // TODO: we only write the pid file if we daemonize, should we only unlink it if we daemonize?
 
-  c.SkipTicksFor(c.StopGraceTime)
+  c.SkipTicksFor(c.StopGraceTime.Seconds())
 
 }
 
@@ -629,7 +719,7 @@ func (c *Process) RestartProcess(){
     log.Println("EXEC RESULT:", result)
     c.ListenerChannel <- result
 
-    c.SkipTicksFor(c.RestartGraceTime)
+    c.SkipTicksFor(c.RestartGraceTime.Seconds())
 
 	} else {
 		log.Println("No RestartCommand specified. Must stop and start to restart")
@@ -657,7 +747,7 @@ func (c *Process) isDaemonized() bool{
 }
 
 func (c *Process) isMonitorChildren() bool{
-	return !!c.monitor_children
+	return !!c.MonitorChildren
 }
 
 func (c *Process) SignalProcess(code syscall.Signal) bool{
@@ -688,7 +778,7 @@ func (c *Process) SignalProcess(code syscall.Signal) bool{
 }
 
 func (c *Process) isActualPidCached() bool{
-	return !!c.cache_actual_pid
+	return !!c.CacheActualPid
 }
 
 func (c *Process) ActualPid() int{
@@ -711,7 +801,7 @@ func (c *Process) PidFromFile() (string, error) {
   int_pid = int(c.actual_pid)
   stringed_pid := strconv.Itoa(int_pid)
   
-  if c.cache_actual_pid && c.actual_pid > 0 {
+  if c.CacheActualPid && c.actual_pid > 0 {
     return stringed_pid, nil
   }else{
     if len(c.PidFile) > 0 {
@@ -756,7 +846,7 @@ func (c *Process) UnlinkPid() {
   system.DeleteIfExists(c.pid_file)
 }
 
-func (c *Process) SkipTicksFor(seconds int) {
+func (c *Process) SkipTicksFor(seconds float64) {
   /*
     TODO: should this be addative or longest wins?
     i.e. if two calls for skip_ticks_for come in for 5 and 10, should it skip for 10 or 15?

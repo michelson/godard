@@ -28,24 +28,21 @@ func NewAppProxy(app_name string , options *cfg.GodardConfig) *AppProxy {
 func (c *AppProxy) AddProcesses(t map[string]interface {} ) {
   log.Println("PROCESS CONFIG:", t["pid_file"] )
 
-
   //ATTRS := ["working_dir", "uid", "gid", "environment", "auto_start" ]
-
   //process_factory = ProcessFactory.new(attributes, process_block)
-
   //process = process_factory.create_process(process_name, @app.pids_dir)
-  //group = process_factory.attributes.delete(:group)
-
-  //group := t["group"] || ""
 
   //http://stackoverflow.com/questions/19021848/how-to-send-a-message-to-an-object-in-golang-send-equivalent-in-go
 
   process_factory := NewProcessFactory(t)
-  process := process_factory.CreateProcess(t["name"].(string))
-  //group = process_factory.attributes.delete(:group)
+  process := process_factory.CreateProcess(t["name"].(string), c.App.PidsDir)
+  
+  var group string
+  if _,ok := t["group"]; ok {
+    group = t["group"].(string)
+  }
 
-  c.App.AddProcess(process, "group")
-
+  c.App.AddProcess(process, group)
 }
 
 
