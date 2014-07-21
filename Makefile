@@ -13,6 +13,9 @@ deps:
 test:
 	./make.sh test
 
+format:
+	./make.sh format
+
 convey:
 	./bin/goconvey --depth=2
 

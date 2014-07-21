@@ -1,12 +1,10 @@
-
 package dsl
 
 import (
- cfg "godard_config"
+	cfg "godard_config"
 )
 
-func InitApplication(app_name string , options *cfg.GodardConfig ){
-  app_proxy := NewAppProxy(app_name, options)
-  app_proxy.App.Load()
+func InitApplication(app_name string, options *cfg.GodardConfig) {
+	app_proxy := NewAppProxy(app_name, options)
+	app_proxy.App.Load()
 }
-

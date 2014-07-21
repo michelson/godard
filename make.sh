@@ -39,4 +39,8 @@ function test {
   ls ./src | grep -v "\." | sed 's/\///g' | xargs go test -cover
 }
 
+function format {
+  ls ./src | grep -v "\." | sed 's/\///g' | xargs go fmt
+}
+
 $1

@@ -1,36 +1,36 @@
 package dsl
 
-import(
-    proc "process"
-    "log" 
+import (
+	"log"
+	proc "process"
 )
 
 type ProcessProxy struct {
-  Attributes map[string]interface{}
-  Watches    map[string]interface{}
+	Attributes map[string]interface{}
+	Watches    map[string]interface{}
 }
 
 func NewProcessProxy(process_name string, attributes map[string]interface{}) *ProcessProxy {
 
-  c := &ProcessProxy{}
-  c.Attributes = attributes
-  c.Watches = make(map[string]interface{}, 0)
+	c := &ProcessProxy{}
+	c.Attributes = attributes
+	c.Watches = make(map[string]interface{}, 0)
 
-  if _,ok := attributes["checks"]; ok {
-    m := attributes["checks"].(map[string]interface{})
-    for k, v := range m {
-      switch vv := v.(type) {
-      case interface{}:
-        log.Println(k, "is interface", vv)
-        //c.Checks(k , vv)
-        c.Watches[k] = vv
-      default:
-        log.Println(k, "is of a type I don't know how to handle")
-      }
-    }
-  }
-  
-  return c
+	if _, ok := attributes["checks"]; ok {
+		m := attributes["checks"].(map[string]interface{})
+		for k, v := range m {
+			switch vv := v.(type) {
+			case interface{}:
+				log.Println(k, "is interface", vv)
+				//c.Checks(k , vv)
+				c.Watches[k] = vv
+			default:
+				log.Println(k, "is of a type I don't know how to handle")
+			}
+		}
+	}
+
+	return c
 }
 
 /*
@@ -40,13 +40,12 @@ func (c*ProcessProxy) monitor_children(&child_process_block) {
 }
 */
 
-func (c*ProcessProxy) ToProcess() *proc.Process {
-  /*p := &proc.Process{}
-  p.Name = c.Attributes["name"].(string)
-  p.StartCommand = c.Attributes["start_command"].(string)
-  p.PidFile = c.Attributes["pid_file"].(string)
-  p.AddWatches(c.Watches)*/
-  p := proc.NewProcess(c.Attributes["name"].(string), c.Watches , c.Attributes)
-  return p
+func (c *ProcessProxy) ToProcess() *proc.Process {
+	/*p := &proc.Process{}
+	  p.Name = c.Attributes["name"].(string)
+	  p.StartCommand = c.Attributes["start_command"].(string)
+	  p.PidFile = c.Attributes["pid_file"].(string)
+	  p.AddWatches(c.Watches)*/
+	p := proc.NewProcess(c.Attributes["name"].(string), c.Watches, c.Attributes)
+	return p
 }
-
