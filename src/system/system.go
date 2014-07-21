@@ -13,6 +13,7 @@ import (
     "os/exec"
     //"os/signal"
     "syscall"
+    "bufio"
 )
 
 var Store []map[string]interface{}
@@ -225,7 +226,7 @@ func ParseElapsedTime(str string) int {
     return int(minutes)
 }
 
-func file_exists(path string) (bool, error) {
+func FileExists(path string) (bool, error) {
     _, err := os.Stat(path)
     if err == nil { return true, nil }
     if os.IsNotExist(err) { return false, nil }
@@ -234,7 +235,7 @@ func file_exists(path string) (bool, error) {
 
 func DeleteIfExists(filename string) {
 
-  exists , _ := file_exists(filename)
+  exists , _ := FileExists(filename)
 
   if exists {
     err := os.Remove(filename)
@@ -471,3 +472,37 @@ func ResetData(){
     Store =  make([]map[string]interface{}, 0)
   }
 }
+
+func IsDirectory(name string) bool {
+  s, err := os.Stat(name)
+  return err == nil && s.IsDir()
+}
+
+func ReadLines(file string) []string {
+  f, err := os.Open(file) 
+  if err != nil {  
+    log.Fatal(err)
+  }
+  var response []string
+  bf := bufio.NewReader(f)
+
+  for {
+    line, isPrefix, err := bf.ReadLine()
+
+    if err == io.EOF {
+      break
+    }
+
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    if isPrefix {
+      log.Fatal("Error: Unexpected long line reading", f.Name())
+    }
+
+    //fmt.Println(string(line))
+    response = append(response , string(line))
+  }
+  return response
+} 
