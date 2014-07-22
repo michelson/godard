@@ -10,47 +10,48 @@ import (
 	"strings"
 	"syscall"
 	system "system"
+	logger "godard_logger"
 	"time"
 )
 
-type ProcessJournal struct {
-	Logger         string
-	JournalBaseDir string
-}
+//type ProcessJournal struct {
+	var Logger         *logger.GodardLogger //*log.Logger
+	var JournalBaseDir string
+//}
 
-func (c *ProcessJournal) SetLogger(new_logger string) {
-	if len(c.Logger) == 0 {
-		c.Logger = new_logger
+func SetLogger(new_logger *logger.GodardLogger) {
+	if Logger == nil {
+		Logger = new_logger
 	}
 }
 
-func (c *ProcessJournal) SetBaseDir(base_dir string) {
+func SetBaseDir(base_dir string) {
 
-	if len(c.JournalBaseDir) == 0 {
-		c.JournalBaseDir = path.Join(base_dir, "journals")
+	if len(JournalBaseDir) == 0 {
+		JournalBaseDir = path.Join(base_dir, "journals")
 	}
-	exists, _ := system.FileExists(c.JournalBaseDir)
+	exists, _ := system.FileExists(JournalBaseDir)
 	if !exists {
-		err := os.MkdirAll(c.JournalBaseDir, 0777)
+		err := os.MkdirAll(JournalBaseDir, 0777)
 		if err != nil {
 			log.Println("ERROR CREATING PIDS DIR", err)
 		}
 	}
 
-	os.Chmod(c.JournalBaseDir, 0777)
+	os.Chmod(JournalBaseDir, 0777)
 }
 
-func (c *ProcessJournal) isSkipPid(pid int) bool {
+func isSkipPid(pid int) bool {
 	//!pid.is_a?(Integer) || pid <= 1
 	return pid <= 1
 }
 
-func (c *ProcessJournal) isSkipPgid(pid int) bool {
+func isSkipPgid(pid int) bool {
 	//!pgid.is_a?(Integer) || pgid <= 1
 	return pid <= 1
 }
 
-func (c *ProcessJournal) AcquireAtomicFsLock(name string) {
+func AcquireAtomicFsLock(name string) {
 	times := 0
 	name += ".lock"
 	err := os.MkdirAll(name, 0700)
@@ -70,10 +71,10 @@ func (c *ProcessJournal) AcquireAtomicFsLock(name string) {
 		//raise "Timeout waiting for lock #{name}"
 	}
 	//ensure
-	c.ClearAtomicFsLock(name)
+	ClearAtomicFsLock(name)
 }
 
-func (c *ProcessJournal) ClearAllAtomicFsLocks() {
+func ClearAllAtomicFsLocks() {
 	files, _ := filepath.Glob(".*.lock")
 	for _, file := range files {
 		if system.IsDirectory(file) {
@@ -82,15 +83,15 @@ func (c *ProcessJournal) ClearAllAtomicFsLocks() {
 	}
 }
 
-func (c *ProcessJournal) PidJournalFilename(journal_name string) string {
-	return path.Join(c.JournalBaseDir, ".godard_pids_journal"+journal_name)
+func PidJournalFilename(journal_name string) string {
+	return path.Join(JournalBaseDir, ".godard_pids_journal"+journal_name)
 }
 
-func (c *ProcessJournal) PgidJournalFilename(journal_name string) string {
-	return path.Join(c.JournalBaseDir, ".godard_pids_journal"+journal_name)
+func PgidJournalFilename(journal_name string) string {
+	return path.Join(JournalBaseDir, ".godard_pids_journal"+journal_name)
 }
 
-func (c *ProcessJournal) PidJournal(filename string) []int {
+func PidJournal(filename string) []int {
 	//logger.Debug("pid journal file: #{filename}")
 	dat := system.ReadLines(filename)
 	var arr []int
@@ -99,7 +100,7 @@ func (c *ProcessJournal) PidJournal(filename string) []int {
 		arr = append(arr, i)
 	}
 	for i, pid := range arr {
-		if c.isSkipPid(pid) {
+		if isSkipPid(pid) {
 			arr = append(arr[:i], arr[i+1:]...)
 		}
 	}
@@ -109,7 +110,7 @@ func (c *ProcessJournal) PidJournal(filename string) []int {
 	return arr
 }
 
-func (c *ProcessJournal) PgidJournal(filename string) []int {
+func PgidJournal(filename string) []int {
 	//logger.Debug("pgid journal file: #{filename}")
 	dat := system.ReadLines(filename)
 	var arr []int
@@ -118,7 +119,7 @@ func (c *ProcessJournal) PgidJournal(filename string) []int {
 		arr = append(arr, i)
 	}
 	for i, pgid := range arr {
-		if c.isSkipPgid(pgid) {
+		if isSkipPgid(pgid) {
 			arr = append(arr[:i], arr[i+1:]...)
 		}
 	}
@@ -128,14 +129,14 @@ func (c *ProcessJournal) PgidJournal(filename string) []int {
 	return arr
 }
 
-func (c *ProcessJournal) ClearAtomicFsLock(name string) {
+func ClearAtomicFsLock(name string) {
 	if system.IsDirectory(name) {
 		os.Remove(name)
 		//logger.Debug("Cleared lock #{name}")
 	}
 }
 
-func (c *ProcessJournal) KillAllFromAllJournals() {
+func KillAllFromAllJournals() {
 
 	files, _ := filepath.Glob(".godard_pids_journal.*")
 	var xx []string
@@ -149,21 +150,21 @@ func (c *ProcessJournal) KillAllFromAllJournals() {
 		}
 	}
 	for _, journal_name := range yy {
-		c.KillAllFromJournal(journal_name)
+		KillAllFromJournal(journal_name)
 	}
 }
 
-func (c *ProcessJournal) KillAllFromJournal(journal_name string) {
-	c.KillAllPidsFromJournal(journal_name)
-	c.KillAllPgidsFromJournal(journal_name)
+func KillAllFromJournal(journal_name string) {
+	KillAllPidsFromJournal(journal_name)
+	KillAllPgidsFromJournal(journal_name)
 }
 
-func (c *ProcessJournal) KillAllPgidsFromJournal(journal_name string) {
+func KillAllPgidsFromJournal(journal_name string) {
 
-	filename := c.PgidJournalFilename(journal_name)
-	j := c.PgidJournal(filename)
+	filename := PgidJournalFilename(journal_name)
+	j := PgidJournal(filename)
 	if len(j) > 0 {
-		//c.AcquireAtomicFsLock(filename) do ??
+		//AcquireAtomicFsLock(filename) do ??
 		for _, pgid := range j {
 			err := syscall.Kill(-pgid, syscall.SIGTERM)
 			//logger.Info("Termed old process group #{pgid}")
@@ -196,9 +197,9 @@ func (c *ProcessJournal) KillAllPgidsFromJournal(journal_name string) {
 	}
 }
 
-func (c *ProcessJournal) KillAllPidsFromJournal(journal_name string) {
-	filename := c.PgidJournalFilename(journal_name)
-	j := c.PgidJournal(filename)
+func KillAllPidsFromJournal(journal_name string) {
+	filename := PgidJournalFilename(journal_name)
+	j := PgidJournal(filename)
 	if len(j) > 0 {
 		//acquire_atomic_fs_lock(filename) do
 		for _, pid := range j {
@@ -233,16 +234,16 @@ func (c *ProcessJournal) KillAllPidsFromJournal(journal_name string) {
 	}
 }
 
-func (c *ProcessJournal) AppendPgidToJournal(journal_name string, pgid int) {
+func AppendPgidToJournal(journal_name string, pgid int) {
 
-	if c.isSkipPgid(pgid) {
+	if isSkipPgid(pgid) {
 		//logger.Debug("Skipping invalid pgid #{pgid} (class #{pgid.class})")
 		//return
 	}
-	filename := c.PgidJournalFilename(journal_name)
+	filename := PgidJournalFilename(journal_name)
 	//acquire_atomic_fs_lock(filename) do
 	count := 0
-	for _, p := range c.PgidJournal(filename) {
+	for _, p := range PgidJournal(filename) {
 		if p == pgid {
 			count += 1
 		}
@@ -260,23 +261,23 @@ func (c *ProcessJournal) AppendPgidToJournal(journal_name string, pgid int) {
 	}
 }
 
-func (c *ProcessJournal) AppendPidToJournal(journal_name string, pid int) {
+func AppendPidToJournal(journal_name string, pid int) {
 
 	pgid, err := syscall.Getpgid(pid)
 	if err != nil {
 
 	} else {
-		c.AppendPgidToJournal(journal_name, pgid)
+		AppendPgidToJournal(journal_name, pgid)
 	}
 
-	if c.isSkipPid(pid) {
+	if isSkipPid(pid) {
 		//logger.Debug("Skipping invalid pid #{pid} (class #{pid.class})")
 		return
 	}
-	filename := c.PidJournalFilename(journal_name)
+	filename := PidJournalFilename(journal_name)
 	//acquire_atomic_fs_lock(filename) do
 	count := 0
-	for _, p := range c.PidJournal(filename) {
+	for _, p := range PidJournal(filename) {
 		if p == pgid {
 			count += 1
 		}

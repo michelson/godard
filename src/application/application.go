@@ -9,6 +9,8 @@ import (
 	"path"
 	//"process"
 	socket "socket"
+	logger "godard_logger"
+	ProcessJournal "process"
 	"strconv"
 	"strings"
 	"syscall"
@@ -26,7 +28,7 @@ type Application struct {
 	Foreground bool
 
 	Name        string
-	Logger      string
+	Logger      *logger.GodardLogger
 	BaseDir     string
 	PidFile     string
 	KillTimeout int
@@ -65,6 +67,12 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	c.Groups = make(map[string]*Group, 0)
 
 	//self.logger = ProcessJournal.logger = Bluepill::Logger.new(:log_file => self.log_file, :stdout => foreground?).prefix_with(self.name)
+	logger_opts := make(map[string]interface{}, 0)
+	logger_opts["log_file"] = c.LogFile 
+	logger_opts["stdout"]   = c.isForeground()
+	c.Logger = logger.NewGodardLogger(logger_opts).PrefixWith(c.Name)
+	
+	ProcessJournal.Logger = c.Logger
 
 	c.SetupSignalTraps()
 
