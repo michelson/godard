@@ -1,5 +1,6 @@
 package godard_logger
 //http://technosophos.com/2013/09/14/using-gos-built-logger-log-syslog.html
+//http://stackoverflow.com/questions/380172/reading-syslog-output-on-a-mac
 import (
   "log"
   "log/syslog"
@@ -10,7 +11,6 @@ import (
 
 //LOG_METHODS = [:emerg, :alert, :crit, :err, :warning, :notice, :info, :debug]
 
-
 type GodardLogger struct {
   options map[string]interface{}
   Logger   *log.Logger
@@ -18,6 +18,8 @@ type GodardLogger struct {
   Stdout   bool
   Prefixes map[string]*GodardLogger
 }
+
+var logger *log.Logger
 
 func NewGodardLogger(options map[string]interface{}) *GodardLogger{
 
@@ -82,8 +84,6 @@ func (c*GodardLogger) CreateLogger() *log.Logger {
   }
   return logger
 }
-
-var logger *log.Logger
 
 func LoggerAdapter(log_file string) {
 
