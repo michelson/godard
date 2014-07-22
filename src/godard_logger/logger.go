@@ -4,7 +4,6 @@ package godard_logger
 import (
   "log"
   "log/syslog"
-  //"github.com/hashicorp/go-syslog"
   "reflect"
   "os"
 )
@@ -87,8 +86,11 @@ func (c*GodardLogger) CreateLogger() *log.Logger {
 
 func LoggerAdapter(log_file string) {
 
-  f, _ := os.Open(log_file)
-  logger = log.New(os.Stderr, "xxx: ", log.Ldate | log.Ltime | log.Lshortfile)
+  f, err := os.OpenFile(log_file, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+  if err != nil {
+    log.Fatalf("error opening file: %v", err)
+  }
+  //logger = log.New(os.Stderr, "xxx: ", log.Ldate | log.Ltime | log.Lshortfile)
   log.SetOutput(f)
 }
 
