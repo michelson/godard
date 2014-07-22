@@ -896,6 +896,10 @@ func (c *Process) RefreshChildren() {
 
 	   if len(new_children_pids) == 0 {
 	   	//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
+	   	log.Println("Existing children: ")
+	   	for _ , ch := range(c.Children) {
+	   		log.Println(ch.ActualPid())
+	   	}
 	   }
 
 	   //Construct a new process wrapper for each new found children
