@@ -1,8 +1,8 @@
-package dsl
+package application
 
 import (
 	"log"
-	proc "process"
+	//app "application"
 )
 
 type ProcessProxy struct {
@@ -44,12 +44,12 @@ func (c*ProcessProxy) MonitorChildren(child_process_block map[string]interface{}
   c.Attributes["child_process_block"] = child_process_block
 }
 
-func (c *ProcessProxy) ToProcess() *proc.Process {
-	/*p := &proc.Process{}
+func (c *ProcessProxy) ToProcess() *Process {
+	/*p := &app.Process{}
 	  p.Name = c.Attributes["name"].(string)
 	  p.StartCommand = c.Attributes["start_command"].(string)
 	  p.PidFile = c.Attributes["pid_file"].(string)
 	  p.AddWatches(c.Watches)*/
-	p := proc.NewProcess(c.Attributes["name"].(string), c.Watches, c.Attributes)
+	p := NewProcess(c.Attributes["name"].(string), c.Watches, c.Attributes)
 	return p
 }

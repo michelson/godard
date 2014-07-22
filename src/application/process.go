@@ -1,4 +1,4 @@
-package process
+package application
 
 import (
 	//"io"
@@ -20,6 +20,8 @@ import (
 	//dsl "dsl"
 	//"proxies"
 	//"sync/atomic"
+	proc "process"
+	//"dsl"
 )
 
 var wg sync.WaitGroup
@@ -37,7 +39,7 @@ type Process struct {
 	Watches    []*watcher.ConditionWatch
 	Triggers   []*Trigger
 	Children   []*Process
-	Statistics *ProcessStatistics
+	Statistics *proc.ProcessStatistics
 
 	pid_file          string
 	pre_start_command string
@@ -47,7 +49,7 @@ type Process struct {
 
 	CacheActualPid  bool
 	MonitorChildren bool
-	//ChildProcessFactory *dslProxy.DslProcessProxy.ProcessFactory
+	ChildProcessFactory ProcessFactory
 
 	Stdout string
 	Stderr string
@@ -236,7 +238,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	c.Triggers = make([]*Trigger, 0)
 	c.Children = make([]*Process, 0)
 	// @threads = []
-	c.Statistics = NewProcessStatistics()
+	c.Statistics = proc.NewProcessStatistics()
 	// @actual_pid = options[:actual_pid]
 	// self.logger = options[:logger]
 
@@ -896,15 +898,14 @@ func (c *Process) RefreshChildren() {
 	   	//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
 	   }
 
-	   //log.Println("SSSS", proxies.DslProcessProxy.Process)
 	   //Construct a new process wrapper for each new found children
-	   /*for _ , child_pid := range(new_children_pids){
+	   for _ , child_pid := range(new_children_pids){
 	     //ProcessJournal.append_pid_to_journal(name, child_pid)
 	     child_name := "<child(pid:"+ child_pid["pid"].(string) +")>"
 	     //logger = self.logger.prefix_with(child_name)
-	     child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid, logger)
+	     child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid["pid"].(string), "logger")
 	     c.Children =  append(c.Children, child)
-	   }*/
+	   }
 }
 
 func (c *Process) SystemCommandOptions() map[string]interface{} {

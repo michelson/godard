@@ -1,4 +1,4 @@
-package dsl
+package application
 
 import (
 	cfg "godard_config"

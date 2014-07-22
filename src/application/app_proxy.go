@@ -1,7 +1,6 @@
-package dsl
+package application
 
 import (
-	app "application"
 	cfg "godard_config"
 	"log"
 )
@@ -12,11 +11,11 @@ type AppProxy struct {
 	Gid         string
 	Environment string
 	AutoStart   string
-	App         *app.Application
+	App         *Application
 }
 
 func NewAppProxy(app_name string, options *cfg.GodardConfig) *AppProxy {
-	app := app.NewApplication(app_name, options)
+	app := NewApplication(app_name, options)
 	c := &AppProxy{}
 	c.App = app
 	for _, t := range options.Processes {

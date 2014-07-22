@@ -2,7 +2,7 @@ package application
 
 import (
 	"log"
-	pcs "process"
+	//pcs "process"
 	"reflect"
 	"strings"
 	"time"
@@ -10,17 +10,17 @@ import (
 
 type Group struct {
 	Name      string
-	Processes []*pcs.Process
+	Processes []*Process
 	Options   []map[string]interface{}
 }
 
 func NewGroup(name string) *Group {
 	c := &Group{}
-	c.Processes = make([]*pcs.Process, 0)
+	c.Processes = make([]*Process, 0)
 	return c
 }
 
-func (c *Group) AddProcess(process *pcs.Process) {
+func (c *Group) AddProcess(process *Process) {
 	c.Processes = append(c.Processes, process)
 }
 

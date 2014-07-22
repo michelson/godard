@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	app "application"
 )
 
 var Application string
@@ -94,7 +95,7 @@ func main() {
 	}
 
 	controller_opts["log_file"] = *LogFile
-	controller := NewController(controller_opts)
+	controller := app.NewController(controller_opts)
 
 	//fmt.Println(controller_opts)
 

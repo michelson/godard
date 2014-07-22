@@ -1,7 +1,7 @@
 package godard
 
 import (
-	app "dsl"
+	app "application"
 	cfg "godard_config"
 )
 

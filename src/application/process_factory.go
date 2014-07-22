@@ -1,11 +1,11 @@
-package dsl
+package application
 
 import (
 	"log"
 	"path"
-	proc "process"
 	"regexp"
 	"strings"
+	//app "application"
 )
 
 type ProcessFactory struct {
@@ -20,7 +20,7 @@ func NewProcessFactory(attributes map[string]interface{}) *ProcessFactory {
 	return c
 }
 
-func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *proc.Process {
+func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *Process {
 
 	c.assignDefaultPidFile(name, pids_dir)
 
@@ -38,7 +38,7 @@ func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *proc.Proce
 	return p
 }
 
-func (c*ProcessFactory) CreateChildProcess(name string , pid , logger string) *proc.Process{
+func (c*ProcessFactory) CreateChildProcess(name string , pid string , logger string) *Process{
 	attributes := make(map[string]interface{}, 0)
 	default_attrs := []string{"start_grace_time", "stop_grace_time", "restart_grace_time"}
   for _ , a := range(default_attrs){
@@ -77,6 +77,6 @@ func (c *ProcessFactory) ValidateProcess(process *ProcessProxy) {
 	//TODO
 }
 
-func (c *ProcessFactory) ValidateChildProcess(process *proc.Process) {
+func (c *ProcessFactory) ValidateChildProcess(process *Process) {
 	//TODO
 }

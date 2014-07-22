@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	pcs "process"
+	//"process"
 	socket "socket"
 	"strconv"
 	"strings"
@@ -99,7 +99,7 @@ func (c *Application) Status(names ...string) {
 	c.sendToProcessOrGroup("status", names...)
 }
 
-func (c *Application) AddProcess(process *pcs.Process, group_name string) {
+func (c *Application) AddProcess(process *Process, group_name string) {
 
 	var group *Group
 
