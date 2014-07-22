@@ -17,7 +17,6 @@ type ProcessFactory struct {
 func NewProcessFactory(attributes map[string]interface{}) *ProcessFactory {
 	c := &ProcessFactory{}
 	c.attributes = attributes
-	//c.process_block = process_block
 	return c
 }
 
@@ -27,13 +26,33 @@ func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *proc.Proce
 
 	//log.Println("PROXY CREATING PROCESS:", name)
 	process := NewProcessProxy(name, c.attributes)
+	
 	//child_process_block = @attributes.delete(:child_process_block)
-	//self.validate_process! process
+	if c.attributes["monitor_children"] != nil && c.attributes["monitor_children"].(bool) {
+		c.attributes["child_process_factory"] = NewProcessFactory(c.attributes)
+	}
+
 	c.ValidateProcess(process)
 	p := process.ToProcess()
 
 	return p
+}
 
+func (c*ProcessFactory) CreateChildProcess(name string , pid , logger string) *proc.Process{
+	attributes := make(map[string]interface{}, 0)
+	default_attrs := []string{"start_grace_time", "stop_grace_time", "restart_grace_time"}
+  for _ , a := range(default_attrs){
+  	attributes[a] = c.attributes[a]
+  }
+  attributes["actual_pid"] = pid
+  attributes["logger"] = logger
+
+  child := NewProcessProxy(name, attributes)
+  c.ValidateProcess(child)
+  process := child.ToProcess()
+
+  process.DetermineInitialState()
+  return process
 }
 
 func (c *ProcessFactory) assignDefaultPidFile(process_name string, pids_dir string) {

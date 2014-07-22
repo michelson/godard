@@ -17,6 +17,8 @@ import (
 	system "system"
 	time "time"
 	"util"
+	//dsl "dsl"
+	//"proxies"
 	//"sync/atomic"
 )
 
@@ -45,6 +47,7 @@ type Process struct {
 
 	CacheActualPid  bool
 	MonitorChildren bool
+	//ChildProcessFactory *dslProxy.DslProcessProxy.ProcessFactory
 
 	Stdout string
 	Stderr string
@@ -632,11 +635,11 @@ func (c *Process) PreStartProcess() {
 //NOK
 func (c *Process) StopProcess() {
 	if c.MonitorChildren {
-		/*childs , _ := system.GetChildren(c.actual_pid)
-		  for child_pid, _ := range(childs){
-		    //ProcessJournal.append_pid_to_journal(name, child_pid)
-		    log.Println("Stop process : " , child_pid)
-		  }*/
+		childs , _ := system.GetChildren(c.actual_pid)
+	  for _, child_pid := range(childs){
+	    //ProcessJournal.append_pid_to_journal(name, child_pid)
+	    log.Println("Stop process : " , child_pid)
+		}
 	}
 	if len(c.StopCommand) > 0 {
 		cmd := c.PrepareCommand(c.StopCommand)
@@ -871,29 +874,37 @@ func (c *Process) isSkippingTicks() bool {
 }
 
 func (c *Process) RefreshChildren() {
-	/*
 
-	   # First prune the list of dead children
-	   @children.delete_if {|child| !child.process_running?(true) }
 
-	   # Add new found children to the list
-	   new_children_pids = System.get_children(self.actual_pid) - @children.map {|child| child.actual_pid}
+	   // First prune the list of dead children
+	   for _ , child := range(c.Children){
+	   		if !child.isProcessRunning(true){
+	   			//delete HERE!!!!!
+	   		}
+	   }
 
-	   unless new_children_pids.empty?
-	     logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
-	   end
+	   // Add new found children to the list
+	   new_children_pids := make([]map[string]interface{} , 0)
+	   childs_arr, _ := system.GetChildren(c.actual_pid)
+	   for _ , pid := range(childs_arr) {
+	   		if c.actual_pid != pid["Pid"].(int64) {
+	   			new_children_pids = append(new_children_pids , pid)
+	   		}
+	   }
 
-	   # Construct a new process wrapper for each new found children
-	   new_children_pids.each do |child_pid|
-	     ProcessJournal.append_pid_to_journal(name, child_pid)
-	     child_name = "<child(pid:#{child_pid})>"
-	     logger = self.logger.prefix_with(child_name)
+	   if len(new_children_pids) == 0 {
+	   	//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
+	   }
 
-	     child = self.child_process_factory.create_child_process(child_name, child_pid, logger)
-	     @children << child
-	   end
-
-	*/
+	   //log.Println("SSSS", proxies.DslProcessProxy.Process)
+	   //Construct a new process wrapper for each new found children
+	   /*for _ , child_pid := range(new_children_pids){
+	     //ProcessJournal.append_pid_to_journal(name, child_pid)
+	     child_name := "<child(pid:"+ child_pid["pid"].(string) +")>"
+	     //logger = self.logger.prefix_with(child_name)
+	     child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid, logger)
+	     c.Children =  append(c.Children, child)
+	   }*/
 }
 
 func (c *Process) SystemCommandOptions() map[string]interface{} {
