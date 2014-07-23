@@ -28,11 +28,10 @@ type ConditionWatch struct {
 
 func NewConditionWatch(name string, options interface{}) *ConditionWatch {
 
-	
 	v := options.(map[string]interface{})
 	//c.Logger.Println("CREATING", name ,"CONDITION EVERY", v["every"])
 	c := &ConditionWatch{}
-	
+
 	c.Logger = v["logger"].(*log.Logger)
 
 	if _, ok := v["fires"]; ok {
@@ -49,7 +48,7 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch {
 		arr[1] = v["times"].(float64)
 		c.Times = arr
 	}
-	
+
 	c.Name = name
 
 	/*@include_children = options.delete(:include_children) || false

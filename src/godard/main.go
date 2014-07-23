@@ -8,12 +8,12 @@ import (
 	cfg "godard_config"
 	//"github.com/barakmich/glog"
 	//"graph"
+	app "application"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"syscall"
-	app "application"
 )
 
 var Application string

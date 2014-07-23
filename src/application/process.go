@@ -17,11 +17,8 @@ import (
 	system "system"
 	time "time"
 	"util"
-	//dsl "dsl"
-	//"proxies"
 	//"sync/atomic"
 	proc "process"
-	//"dsl"
 )
 
 var wg sync.WaitGroup
@@ -47,8 +44,8 @@ type Process struct {
 	StopCommand       string
 	RestartCommand    string
 
-	CacheActualPid  bool
-	MonitorChildren bool
+	CacheActualPid      bool
+	MonitorChildren     bool
 	ChildProcessFactory ProcessFactory
 
 	Stdout string
@@ -574,6 +571,7 @@ func (c *Process) HandleUserCommand(cmd string) {
 }
 
 func (c *Process) StartProcess() {
+	proc.KillAllFromJournal(c.Name)
 	c.PreStartProcess()
 	if c.isDaemonized() {
 		c.Logger.Println("Executing start cmd DEMONIZED:", c.StartCommand)
@@ -584,8 +582,8 @@ func (c *Process) StartProcess() {
 		       ProcessJournal.append_pid_to_journal(name, child.actual_id)
 		     } if self.monitor_children?
 		   end
-		   daemon_id*/
-
+		   daemon_id
+		*/
 	} else {
 		/*
 		   # This is a self-daemonizing process
@@ -630,10 +628,10 @@ func (c *Process) PreStartProcess() {
 //NOK
 func (c *Process) StopProcess() {
 	if c.MonitorChildren {
-		childs , _ := system.GetChildren(c.actual_pid)
-	  for _, child_pid := range(childs){
-	    //ProcessJournal.append_pid_to_journal(name, child_pid)
-	    c.Logger.Println("Stop process : " , child_pid)
+		childs, _ := system.GetChildren(c.actual_pid)
+		for _, child_pid := range childs {
+			proc.AppendPidToJournal(c.Name, child_pid["pid"].(int))
+			c.Logger.Println("Stop process : ", child_pid)
 		}
 	}
 	if len(c.StopCommand) > 0 {
@@ -683,8 +681,8 @@ func (c *Process) StopProcess() {
 		c.Logger.Println("Executing default stop command. Sending TERM signal to", c.ActualPid)
 		c.SignalProcess(syscall.SIGTERM)
 	}
-	//ProcessJournal.kill_all_from_journal(name) # finish cleanup
-	c.UnlinkPid() // TODO: we only write the pid file if we daemonize, should we only unlink it if we daemonize?
+	proc.KillAllFromJournal(c.Name) // finish cleanup
+	c.UnlinkPid()                   // TODO: we only write the pid file if we daemonize, should we only unlink it if we daemonize?
 
 	c.SkipTicksFor(c.StopGraceTime.Seconds())
 
@@ -805,7 +803,7 @@ func (c *Process) PidFromFile() (string, error) {
 			var num_pid string
 			num_pid = string(dat)
 			int_str, _ := strconv.Atoi(num_pid)
-			c.actual_pid = int64(int_str)
+			c.SetActualPid(int64(int_str))
 			return string(dat), err
 		} else {
 			c.Logger.Println("pid_file", c.PidFile, " does not exist or cannot be read")
@@ -826,12 +824,13 @@ func (c *Process) PidFromCommand() (string, error) {
 }
 
 func (c *Process) SetActualPid(pid int64) {
-	//ProcessJournal.append_pid_to_journal(name, pid) # be sure to always log the pid
+	var p int = int(pid)
+	proc.AppendPidToJournal(c.Name, p) // be sure to always log the pid
 	c.actual_pid = pid
 }
 
 func (c *Process) ClearPid() {
-	c.actual_pid = 0
+	c.SetActualPid(0)
 }
 
 func (c *Process) UnlinkPid() {
@@ -870,39 +869,38 @@ func (c *Process) isSkippingTicks() bool {
 
 func (c *Process) RefreshChildren() {
 
+	// First prune the list of dead children
+	for _, child := range c.Children {
+		if !child.isProcessRunning(true) {
+			//delete HERE!!!!!
+		}
+	}
 
-	   // First prune the list of dead children
-	   for _ , child := range(c.Children){
-	   		if !child.isProcessRunning(true){
-	   			//delete HERE!!!!!
-	   		}
-	   }
+	// Add new found children to the list
+	new_children_pids := make([]map[string]interface{}, 0)
+	childs_arr, _ := system.GetChildren(c.actual_pid)
+	for _, pid := range childs_arr {
+		if c.actual_pid != pid["Pid"].(int64) {
+			new_children_pids = append(new_children_pids, pid)
+		}
+	}
 
-	   // Add new found children to the list
-	   new_children_pids := make([]map[string]interface{} , 0)
-	   childs_arr, _ := system.GetChildren(c.actual_pid)
-	   for _ , pid := range(childs_arr) {
-	   		if c.actual_pid != pid["Pid"].(int64) {
-	   			new_children_pids = append(new_children_pids , pid)
-	   		}
-	   }
+	if len(new_children_pids) == 0 {
+		//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
+		c.Logger.Println("Existing children: ")
+		for _, ch := range c.Children {
+			c.Logger.Println(ch.ActualPid())
+		}
+	}
 
-	   if len(new_children_pids) == 0 {
-	   	//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
-	   	c.Logger.Println("Existing children: ")
-	   	for _ , ch := range(c.Children) {
-	   		c.Logger.Println(ch.ActualPid())
-	   	}
-	   }
-
-	   //Construct a new process wrapper for each new found children
-	   for _ , child_pid := range(new_children_pids){
-	     //ProcessJournal.append_pid_to_journal(name, child_pid)
-	     child_name := "<child(pid:"+ child_pid["pid"].(string) +")>"
-	     //logger = self.logger.prefix_with(child_name)
-	     child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid["pid"].(string), "logger")
-	     c.Children =  append(c.Children, child)
-	   }
+	//Construct a new process wrapper for each new found children
+	for _, child_pid := range new_children_pids {
+		//ProcessJournal.append_pid_to_journal(name, child_pid)
+		child_name := "<child(pid:" + child_pid["pid"].(string) + ")>"
+		//logger = self.logger.prefix_with(child_name)
+		child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid["pid"].(string), "logger")
+		c.Children = append(c.Children, child)
+	}
 }
 
 func (c *Process) SystemCommandOptions() map[string]interface{} {

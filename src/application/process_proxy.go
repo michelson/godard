@@ -26,22 +26,22 @@ func NewProcessProxy(process_name string, attributes map[string]interface{}) *Pr
 	return c
 }
 
-func (c*ProcessProxy) Checks(attributes map[string]interface{}) {
+func (c *ProcessProxy) Checks(attributes map[string]interface{}) {
 	m := attributes["checks"].(map[string]interface{})
-		for k, v := range m {
-			switch vv := v.(type) {
-			case interface{}:
-				log.Println(k, "is interface", vv)
-				c.Watches[k] = vv
-			default:
-				log.Println(k, "is of a type I don't know how to handle")
-			}
+	for k, v := range m {
+		switch vv := v.(type) {
+		case interface{}:
+			log.Println(k, "is interface", vv)
+			c.Watches[k] = vv
+		default:
+			log.Println(k, "is of a type I don't know how to handle")
 		}
+	}
 }
 
-func (c*ProcessProxy) MonitorChildren(child_process_block map[string]interface{}) {
-  c.Attributes["monitor_children"] = true
-  c.Attributes["child_process_block"] = child_process_block
+func (c *ProcessProxy) MonitorChildren(child_process_block map[string]interface{}) {
+	c.Attributes["monitor_children"] = true
+	c.Attributes["child_process_block"] = child_process_block
 }
 
 func (c *ProcessProxy) ToProcess() *Process {

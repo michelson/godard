@@ -14,10 +14,8 @@ import (
 	"time"
 )
 
-//type ProcessJournal struct {
-	var Logger         *log.Logger
-	var JournalBaseDir string
-//}
+var Logger *log.Logger
+var JournalBaseDir string
 
 func SetLogger(new_logger *log.Logger) {
 	if Logger == nil {
@@ -84,11 +82,11 @@ func ClearAllAtomicFsLocks() {
 }
 
 func PidJournalFilename(journal_name string) string {
-	return path.Join(JournalBaseDir, ".godard_pids_journal"+journal_name)
+	return path.Join(JournalBaseDir, ".godard_pids_journal."+journal_name)
 }
 
 func PgidJournalFilename(journal_name string) string {
-	return path.Join(JournalBaseDir, ".godard_pids_journal"+journal_name)
+	return path.Join(JournalBaseDir, ".godard_pids_journal."+journal_name)
 }
 
 func PidJournal(filename string) []int {

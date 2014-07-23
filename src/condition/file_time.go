@@ -1,15 +1,15 @@
 package condition
 
 import (
+	"log"
 	"os"
 	"time"
-  "log"
 )
 
 type FileTime struct {
 	Below    float64
 	filename string
-  Logger *log.Logger
+	Logger   *log.Logger
 }
 
 func NewFileTime(options map[string]interface{}) *FileTime {

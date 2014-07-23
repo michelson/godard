@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"path"
 	//"process"
-	socket "socket"
 	logger "godard_logger"
 	ProcessJournal "process"
+	socket "socket"
 	"strconv"
 	"strings"
 	"syscall"
@@ -39,7 +39,8 @@ type Application struct {
 	Sock        *socket.Socket
 	running     bool
 }
-var Debug *log.Logger 
+
+var Debug *log.Logger
 
 func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	c := &Application{}
@@ -67,12 +68,11 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	log.Println("PID FILE_:", c.PidFile)
 	c.Groups = make(map[string]*Group, 0)
 
-	//self.logger = ProcessJournal.logger = Bluepill::Logger.new(:log_file => self.log_file, :stdout => foreground?).prefix_with(self.name)
 	logger_opts := make(map[string]interface{}, 0)
-	logger_opts["log_file"] = c.LogFile 
-	logger_opts["stdout"]   = c.isForeground()
+	logger_opts["log_file"] = c.LogFile
+	logger_opts["stdout"] = c.isForeground()
+
 	c.Logger = logger.NewGodardLogger(logger_opts).PrefixWith(c.Name)
-	
 	ProcessJournal.Logger = c.Logger.Logger
 	Debug = ProcessJournal.Logger
 
@@ -114,7 +114,7 @@ func (c *Application) AddProcess(process *Process, group_name string) {
 	var group *Group
 
 	if len(c.Groups) == 0 {
-		group = NewGroup(group_name,  c.Logger.PrefixWith(group_name).Logger)
+		group = NewGroup(group_name, c.Logger.PrefixWith(group_name).Logger)
 		c.Groups[group_name] = group
 	} else {
 		group = c.Groups[group_name]
@@ -145,9 +145,9 @@ func (c *Application) Load() {
 
 func (c *Application) StartServer() {
 
-	//self.kill_previous_bluepill
-	//ProcessJournal.kill_all_from_all_journals
-	//ProcessJournal.clear_all_atomic_fs_locks
+	c.KillPreviousGodard()
+	ProcessJournal.KillAllFromAllJournals()
+	ProcessJournal.ClearAllAtomicFsLocks()
 
 	// err := syscall.Setpgid(0, 0)
 
@@ -229,6 +229,7 @@ func (c *Application) SetupSignalTraps() {
 		sig := <-cc
 		Debug.Printf("Caught signal %s: shutting down.", sig)
 		c.running = false
+		c.CleanUp()
 		// Stop listening (and unlink the socket if unix type):
 		c.Sock.Listener.Close()
 		//os.Remove("/tmp/godard.sock")
@@ -251,6 +252,49 @@ func (c *Application) SetupPidsDir() {
 	if err != nil {
 		Debug.Println("ERROR CREATING PIDS DIR", err)
 	}
+}
+
+func (c *Application) KillPreviousGodard() {
+	/*
+	     if File.exists?(self.pid_file)
+	       previous_pid = File.read(self.pid_file).to_i
+	       if System.pid_alive?(previous_pid)
+	         begin
+	           ::Process.kill(0, previous_pid)
+	           puts "Killing previous bluepilld[#{previous_pid}]"
+	           ::Process.kill(2, previous_pid)
+	         rescue Exception => e
+	           $stderr.puts "Encountered error trying to kill previous bluepill:"
+	           $stderr.puts "#{e.class}: #{e.message}"
+	           exit(4) unless e.is_a?(Errno::ESRCH)
+	         else
+	           kill_timeout.times do |i|
+	             sleep 0.5
+	             break unless System.pid_alive?(previous_pid)
+	           end
+
+	           if System.pid_alive?(previous_pid)
+	             $stderr.puts "Previous bluepilld[#{previous_pid}] didn't die"
+	             exit(4)
+	           end
+	         end
+	       end
+	     end
+	   end
+	*/
+}
+func (c *Application) CleanUp() {
+	/*
+	   def cleanup
+	     ProcessJournal.kill_all_from_all_journals
+	     ProcessJournal.clear_all_atomic_fs_locks
+	     begin
+	       System.delete_if_exists(self.socket.path) if self.socket
+	     rescue IOError
+	     end
+	     System.delete_if_exists(self.pid_file)
+	   end
+	*/
 }
 
 func (c *Application) sendToProcessOrGroup(method string, names ...string) {

@@ -12,12 +12,12 @@ const mb_label string = "MB"
 const kb_label string = "KB"
 
 type CpuUsage struct {
-	Below float64
+	Below  float64
 	Logger *log.Logger
 }
 
 func NewCpuUsage(options map[string]interface{}) *CpuUsage {
-	var below float64      = float64(options["below"].(float64))
+	var below float64 = float64(options["below"].(float64))
 	var logger *log.Logger = options["logger"].(*log.Logger)
 	c := &CpuUsage{Below: below, Logger: logger}
 	c.Logger.Println("CREATING PROCESS CONDITION BELOW", c.Below)

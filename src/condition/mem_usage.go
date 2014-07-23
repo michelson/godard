@@ -14,7 +14,7 @@ import (
 )
 
 type MemoryUsage struct {
-	Below float64
+	Below  float64
 	Logger *log.Logger
 }
 

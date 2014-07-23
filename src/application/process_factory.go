@@ -26,7 +26,7 @@ func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *Process {
 
 	//log.Println("PROXY CREATING PROCESS:", name)
 	process := NewProcessProxy(name, c.attributes)
-	
+
 	//child_process_block = @attributes.delete(:child_process_block)
 	if c.attributes["monitor_children"] != nil && c.attributes["monitor_children"].(bool) {
 		c.attributes["child_process_factory"] = NewProcessFactory(c.attributes)
@@ -38,21 +38,21 @@ func (c *ProcessFactory) CreateProcess(name string, pids_dir string) *Process {
 	return p
 }
 
-func (c*ProcessFactory) CreateChildProcess(name string , pid string , logger string) *Process{
+func (c *ProcessFactory) CreateChildProcess(name string, pid string, logger string) *Process {
 	attributes := make(map[string]interface{}, 0)
 	default_attrs := []string{"start_grace_time", "stop_grace_time", "restart_grace_time"}
-  for _ , a := range(default_attrs){
-  	attributes[a] = c.attributes[a]
-  }
-  attributes["actual_pid"] = pid
-  attributes["logger"] = logger
+	for _, a := range default_attrs {
+		attributes[a] = c.attributes[a]
+	}
+	attributes["actual_pid"] = pid
+	attributes["logger"] = logger
 
-  child := NewProcessProxy(name, attributes)
-  c.ValidateProcess(child)
-  process := child.ToProcess()
+	child := NewProcessProxy(name, attributes)
+	c.ValidateProcess(child)
+	process := child.ToProcess()
 
-  process.DetermineInitialState()
-  return process
+	process.DetermineInitialState()
+	return process
 }
 
 func (c *ProcessFactory) assignDefaultPidFile(process_name string, pids_dir string) {
