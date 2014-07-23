@@ -39,6 +39,7 @@ type Application struct {
 	Sock        *socket.Socket
 	running     bool
 }
+var Debug *log.Logger 
 
 func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	c := &Application{}
@@ -72,7 +73,8 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	logger_opts["stdout"]   = c.isForeground()
 	c.Logger = logger.NewGodardLogger(logger_opts).PrefixWith(c.Name)
 	
-	ProcessJournal.Logger = c.Logger
+	ProcessJournal.Logger = c.Logger.Logger
+	Debug = ProcessJournal.Logger
 
 	c.SetupSignalTraps()
 
@@ -112,17 +114,18 @@ func (c *Application) AddProcess(process *Process, group_name string) {
 	var group *Group
 
 	if len(c.Groups) == 0 {
-		group = NewGroup(group_name) // :logger => self.logger.prefix_with(group_name))
+		group = NewGroup(group_name,  c.Logger.PrefixWith(group_name).Logger)
 		c.Groups[group_name] = group
 	} else {
 		group = c.Groups[group_name]
 	}
 
+	process.Logger = group.Logger
 	group.AddProcess(process)
 
 	/*
-	  log.Println("GROUPS COUNT: ", len(c.Groups) )
-	  log.Println("GROUPS PROCESSES: ", c.Groups["group"].Processes )
+	  Debug.Println("GROUPS COUNT: ", len(c.Groups) )
+	  Debug.Println("GROUPS PROCESSES: ", c.Groups["group"].Processes )
 	*/
 }
 
@@ -149,7 +152,7 @@ func (c *Application) StartServer() {
 	// err := syscall.Setpgid(0, 0)
 
 	//if err != nil {
-	//  log.Println("Errno::EPERM", err)
+	//  Debug.Println("Errno::EPERM", err)
 	//}
 
 	//Daemonize.daemonize unless foreground?
@@ -161,14 +164,14 @@ func (c *Application) StartServer() {
 	}
 
 	for _, g := range c.Groups {
-		//log.Println("GROUP: ", g,  k )
+		//Debug.Println("GROUP: ", g,  k )
 		g.Tick()
 	}
 
 	sock, err := socket.NewSocket(c.BaseDir, c.Name)
 
 	if err != nil {
-		log.Println(err)
+		Debug.Println(err)
 	}
 	c.WritePidFile()
 	c.Sock = sock
@@ -189,11 +192,11 @@ func (c *Application) StartListener() {
 	for {
 		select {
 		case msg := <-c.Sock.ListenerChannel:
-			//log.Println("received message:", msg)
+			//Debug.Println("received message:", msg)
 			args := strings.Split(msg, ":")
 			c.sendToProcessOrGroup(args[0], args[1:]...)
 		//case <-time.After(time.Second * 30):
-		//    log.Println("timeout 1")
+		//    Debug.Println("timeout 1")
 		default:
 
 		}
@@ -204,7 +207,7 @@ func (c *Application) Run() {
 	c.running = true // set to false by signal trap
 
 	for {
-		//log.Println("APP RUNNING FOR:", c.running)
+		//Debug.Println("APP RUNNING FOR:", c.running)
 		if c.running {
 			system.ResetData()
 			for _, group := range c.Groups {
@@ -224,7 +227,7 @@ func (c *Application) SetupSignalTraps() {
 	go func(cc chan os.Signal) {
 		// Wait for a SIGINT or SIGKILL:
 		sig := <-cc
-		log.Printf("Caught signal %s: shutting down.", sig)
+		Debug.Printf("Caught signal %s: shutting down.", sig)
 		c.running = false
 		// Stop listening (and unlink the socket if unix type):
 		c.Sock.Listener.Close()
@@ -246,12 +249,12 @@ func (c *Application) SetupPidsDir() {
 	  FileUtils.chmod(0777, self.pids_dir)*/
 	err := os.MkdirAll(c.PidsDir, 0777)
 	if err != nil {
-		log.Println("ERROR CREATING PIDS DIR", err)
+		Debug.Println("ERROR CREATING PIDS DIR", err)
 	}
 }
 
 func (c *Application) sendToProcessOrGroup(method string, names ...string) {
-	log.Println("PREPARE TO SEND", method, "TO PROC OR GROUP", names)
+	Debug.Println("PREPARE TO SEND", method, "TO PROC OR GROUP", names)
 	var group_name string
 	var process_name string
 	group_name = names[0]
@@ -262,7 +265,7 @@ func (c *Application) sendToProcessOrGroup(method string, names ...string) {
 	if len(group_name) == 0 && len(process_name) == 0 {
 
 		for _, group := range c.Groups {
-			log.Println("THIS GROUP IS READY TO ,", group)
+			Debug.Println("THIS GROUP IS READY TO ,", group)
 			group.SendMethod(method, "")
 		}
 
@@ -273,7 +276,7 @@ func (c *Application) sendToProcessOrGroup(method string, names ...string) {
 		// they must be targeting just by process name
 		process_name = group_name
 		for _, group := range c.Groups {
-			//log.Println("THIS GROUP IS TARGETING JUST BY PROC ,", group)
+			//Debug.Println("THIS GROUP IS TARGETING JUST BY PROC ,", group)
 			group.SendMethod(method, process_name)
 		}
 		/*
@@ -285,7 +288,7 @@ func (c *Application) sendToProcessOrGroup(method string, names ...string) {
 		//[]
 	}
 
-	//log.Println(group_name , process_name)
+	//Debug.Println(group_name , process_name)
 }
 
 func (c *Application) GroupInString(name string) bool {
@@ -299,9 +302,9 @@ func (c *Application) GroupInString(name string) bool {
 func (c *Application) WritePidFile() {
 	//File.open(self.pid_file, 'w') { |x| x.write(::Process.pid) }
 	str := []byte(strconv.Itoa(syscall.Getpid()))
-	//log.Println("WRITTING APP PID:", string(str), c.PidFile)
+	//Debug.Println("WRITTING APP PID:", string(str), c.PidFile)
 	err := ioutil.WriteFile(c.PidFile, str, 0644)
 	if err != nil {
-		log.Println("Err creating pid:", err)
+		Debug.Println("Err creating pid:", err)
 	}
 }

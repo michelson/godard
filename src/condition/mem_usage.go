@@ -15,20 +15,22 @@ import (
 
 type MemoryUsage struct {
 	Below float64
+	Logger *log.Logger
 }
 
 func NewMemoryUsage(options map[string]interface{}) *MemoryUsage {
 	var below float64
 	below = float64(options["below"].(float64))
-	c := &MemoryUsage{Below: below}
-	log.Println("CREATING PROCESS CONDITION BELOW", c.Below)
+	var logger *log.Logger = options["logger"].(*log.Logger)
+	c := &MemoryUsage{Below: below, Logger: logger}
+	c.Logger.Println("CREATING PROCESS CONDITION BELOW", c.Below)
 	return c
 }
 
 func (c *MemoryUsage) Run(pid int, include_children bool) (float64, error) { // , include_children bool) {
 
 	val, err := system.MemoryUsage(pid) //, include_children)
-	log.Println("MEM USAGE:", val)
+	c.Logger.Println("MEM USAGE:", val)
 	var usage float64
 	usage = float64(val)
 	return usage, err

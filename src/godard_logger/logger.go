@@ -18,7 +18,7 @@ type GodardLogger struct {
   Prefixes map[string]*GodardLogger
 }
 
-var logger *log.Logger
+var Logger *log.Logger
 
 func NewGodardLogger(options map[string]interface{}) *GodardLogger{
 
@@ -64,7 +64,7 @@ func (c*GodardLogger) CreateLogger() *log.Logger {
 
   if len(c.options["log_file"].(string)) > 0 {
     log.Println("LOGGING TO:" , c.options["log_file"].(string))
-    LoggerAdapter(c.options["log_file"].(string))
+    return LoggerAdapter(c.options["log_file"].(string))
     //LoggerAdapter.new(@options[:log_file])
   }else{
 
@@ -80,18 +80,31 @@ func (c*GodardLogger) CreateLogger() *log.Logger {
     }*/
     //Syslog.close if Syslog.opened? # need to explictly close it before reopening it
     //Syslog.open(@options[:identity] || 'godardd', Syslog::LOG_PID, Syslog::LOG_LOCAL6)
+    return Logger
   }
-  return logger
+ 
 }
 
-func LoggerAdapter(log_file string) {
-
+func LoggerAdapter(log_file string) *log.Logger {
+/*
   f, err := os.OpenFile(log_file, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
   if err != nil {
     log.Fatalf("error opening file: %v", err)
   }
   //logger = log.New(os.Stderr, "xxx: ", log.Ldate | log.Ltime | log.Lshortfile)
-  log.SetOutput(f)
+  log.SetOutput(f)*/
+
+  file, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+  if err != nil {
+      log.Fatalln("Failed to open log file", ":", err)
+  }
+
+  Logger = log.New(file,
+        "LOG: ",
+        log.Ldate|log.Ltime|log.Lshortfile)
+
+  //ActualLogger.Println("I have something standard to say")
+  return Logger
 }
 
 /*

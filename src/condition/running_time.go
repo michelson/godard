@@ -9,10 +9,12 @@ KB_LABEL := "KB"
 
 import (
 	system "system"
+  "log"
 )
 
 type RunningTime struct {
 	Below int
+  Logger *log.Logger
 }
 
 func (c *RunningTime) Run(pid int) (int, error) { // , include_children bool) {

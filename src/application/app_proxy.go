@@ -28,11 +28,8 @@ func (c *AppProxy) AddProcesses(t map[string]interface{}) {
 	log.Println("PROCESS CONFIG:", t["pid_file"])
 
 	//ATTRS := ["working_dir", "uid", "gid", "environment", "auto_start" ]
-	//process_factory = ProcessFactory.new(attributes, process_block)
-	//process = process_factory.create_process(process_name, @app.pids_dir)
-
 	//http://stackoverflow.com/questions/19021848/how-to-send-a-message-to-an-object-in-golang-send-equivalent-in-go
-
+	t["logger"] = c.App.Logger.Logger
 	process_factory := NewProcessFactory(t)
 	process := process_factory.CreateProcess(t["name"].(string), c.App.PidsDir)
 

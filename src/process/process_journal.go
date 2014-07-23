@@ -10,16 +10,16 @@ import (
 	"strings"
 	"syscall"
 	system "system"
-	logger "godard_logger"
+	//logger "godard_logger"
 	"time"
 )
 
 //type ProcessJournal struct {
-	var Logger         *logger.GodardLogger //*log.Logger
+	var Logger         *log.Logger
 	var JournalBaseDir string
 //}
 
-func SetLogger(new_logger *logger.GodardLogger) {
+func SetLogger(new_logger *log.Logger) {
 	if Logger == nil {
 		Logger = new_logger
 	}
