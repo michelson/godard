@@ -31,7 +31,7 @@ func SetBaseDir(base_dir string) {
 	if !exists {
 		err := os.MkdirAll(JournalBaseDir, 0777)
 		if err != nil {
-			log.Println("ERROR CREATING PIDS DIR", err)
+			Logger.Println("ERROR CREATING PIDS DIR", err)
 		}
 	}
 
@@ -55,7 +55,7 @@ func AcquireAtomicFsLock(name string) {
 	//Logger.Println("Acquired lock #{name}")
 	//yield
 	if err != nil {
-		log.Println("ERROR CREATING PIDS DIR", err)
+		Logger.Println("ERROR CREATING PIDS DIR", err)
 	}
 
 	times += 1
@@ -89,7 +89,8 @@ func PgidJournalFilename(journal_name string) string {
 }
 
 func PidJournal(filename string) []int {
-	//Logger.Println("pid journal file: #{filename}")
+	Logger.Println("pid journal file: #{filename}")
+	os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	dat := system.ReadLines(filename)
 	var arr []int
 	for _, d := range dat {
@@ -278,6 +279,8 @@ func AppendPidToJournal(journal_name string, pid int) {
 		return
 	}
 	filename := PidJournalFilename(journal_name)
+	Logger.Println("FILENAME JOURNAL", filename)
+	//os.Create(filename)
 	//acquire_atomic_fs_lock(filename) do
 	count := 0
 	for _, p := range PidJournal(filename) {
@@ -289,8 +292,8 @@ func AppendPidToJournal(journal_name string, pid int) {
 		Logger.Println("Saving pid", pid , " to process journal" , journal_name )
 		d1 := strconv.Itoa(pid)
 		//err := ioutil.WriteFile(filename, d1, 0600)
-		_, err := os.Stat(filename)
-		if err != nil {
+		fi, err := os.Stat(filename)
+		if fi == nil {
 			os.Create(filename)
 		}
 
