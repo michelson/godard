@@ -58,6 +58,8 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 		c.BaseDir = os.Getenv("GODARD_BASE_DIR")
 	}
 
+	ProcessJournal.SetBaseDir(c.BaseDir)
+
 	c.PidFile = path.Join(c.BaseDir, "pids", c.Name, c.Name+".pid") // File.join(self.base_dir, 'pids', self.name + ".pid")
 	c.PidsDir = path.Join(c.BaseDir, "pids", c.Name)                //File.join(self.base_dir, 'pids', self.name)
 
@@ -73,7 +75,7 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	logger_opts["stdout"] = c.isForeground()
 
 	c.Logger = logger.NewGodardLogger(logger_opts).PrefixWith(c.Name)
-	ProcessJournal.Logger = c.Logger.Logger
+	ProcessJournal.SetLogger( c.Logger.Logger )
 	Debug = ProcessJournal.Logger
 
 	c.SetupSignalTraps()

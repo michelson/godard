@@ -1,7 +1,6 @@
 package process
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -53,19 +52,19 @@ func AcquireAtomicFsLock(name string) {
 	times := 0
 	name += ".lock"
 	err := os.MkdirAll(name, 0700)
-	//logger.Debug("Acquired lock #{name}")
+	//Logger.Println("Acquired lock #{name}")
 	//yield
 	if err != nil {
 		log.Println("ERROR CREATING PIDS DIR", err)
 	}
 
 	times += 1
-	//logger.Debug("Waiting for lock #{name}")
+	Logger.Println("Waiting for lock", name )
 	time.Sleep(1 * time.Second)
 	if !(times >= 10) {
 		// retry
 	} else {
-		//logger.Info("Timeout waiting for lock #{name}")
+		Logger.Println("Timeout waiting for lock",name )
 		//raise "Timeout waiting for lock #{name}"
 	}
 	//ensure
@@ -90,7 +89,7 @@ func PgidJournalFilename(journal_name string) string {
 }
 
 func PidJournal(filename string) []int {
-	//logger.Debug("pid journal file: #{filename}")
+	//Logger.Println("pid journal file: #{filename}")
 	dat := system.ReadLines(filename)
 	var arr []int
 	for _, d := range dat {
@@ -102,14 +101,14 @@ func PidJournal(filename string) []int {
 			arr = append(arr[:i], arr[i+1:]...)
 		}
 	}
-	//logger.Debug("pid journal = #{result.join(' ')}")
+	Logger.Println("pid journal =", arr)
 	//rescue Errno::ENOENT
 	//[]
 	return arr
 }
 
 func PgidJournal(filename string) []int {
-	//logger.Debug("pgid journal file: #{filename}")
+	//Logger.Println("pgid journal file: #{filename}")
 	dat := system.ReadLines(filename)
 	var arr []int
 	for _, d := range dat {
@@ -121,7 +120,7 @@ func PgidJournal(filename string) []int {
 			arr = append(arr[:i], arr[i+1:]...)
 		}
 	}
-	//logger.Debug("pgid journal = #{result.join(' ')}")
+	Logger.Println("pgid journal =", arr)
 	//rescue Errno::ENOENT
 	//[]
 	return arr
@@ -130,7 +129,7 @@ func PgidJournal(filename string) []int {
 func ClearAtomicFsLock(name string) {
 	if system.IsDirectory(name) {
 		os.Remove(name)
-		//logger.Debug("Cleared lock #{name}")
+		Logger.Println("Cleared lock", name )
 	}
 }
 
@@ -140,7 +139,7 @@ func KillAllFromAllJournals() {
 	var xx []string
 	var yy []string
 	for _, x := range files {
-		xx = append(xx, strings.Replace(x, ".bluepill_pids_journal.", "", 1))
+		xx = append(xx, strings.Replace(x, ".godard_pids_journal.", "", 1))
 	}
 	for _, y := range xx {
 		if !strings.Contains(y, ".lock") {
@@ -165,9 +164,9 @@ func KillAllPgidsFromJournal(journal_name string) {
 		//AcquireAtomicFsLock(filename) do ??
 		for _, pgid := range j {
 			err := syscall.Kill(-pgid, syscall.SIGTERM)
-			//logger.Info("Termed old process group #{pgid}")
+			Logger.Println("Termed old process group", pgid )
 			if err != nil {
-				//logger.Debug("Unable to term missing process group #{pgid}")
+				Logger.Println("Unable to term missing process group", pgid )
 			}
 		}
 		arr := make([]int, 0)
@@ -180,18 +179,18 @@ func KillAllPgidsFromJournal(journal_name string) {
 			time.Sleep(1 * time.Second)
 			for _, pgid := range j {
 				err := syscall.Kill(-pgid, syscall.SIGTERM)
-				//logger.Info("Killed old process group #{pgid}")
+				Logger.Println("Killed old process group", pgid)
 				if err != nil {
-					//logger.Debug("Unable to kill missing process group #{pgid}")
+					Logger.Println("Unable to kill missing process group", pgid )
 				}
 			}
 			system.DeleteIfExists(filename) // reset journal
-			//logger.Debug('Journal cleanup completed')
+			Logger.Println("Journal cleanup completed")
 		}
 
 		//end
 	} else {
-		//logger.Debug('No previous process journal - Skipping cleanup')
+		Logger.Println("No previous process journal - Skipping cleanup")
 	}
 }
 
@@ -202,9 +201,9 @@ func KillAllPidsFromJournal(journal_name string) {
 		//acquire_atomic_fs_lock(filename) do
 		for _, pid := range j {
 			err := syscall.Kill(pid, syscall.SIGTERM)
-			//logger.Info("Termed old process group #{pid}")
+			Logger.Println("Termed old process group", pid )
 			if err != nil {
-				//logger.Debug("Unable to term missing process group #{pid}")
+				Logger.Println("Unable to term missing process group", pid )
 			}
 		}
 
@@ -218,24 +217,24 @@ func KillAllPidsFromJournal(journal_name string) {
 			time.Sleep(1 * time.Second)
 			for _, pid := range j {
 				err := syscall.Kill(pid, syscall.SIGTERM)
-				//logger.Info("Killed old process group #{pid}")
+				Logger.Println("Killed old process group", pid)
 				if err != nil {
-					//logger.Debug("Unable to kill missing process group #{pid}")
+					Logger.Println("Unable to kill missing process group", pid)
 				}
 			}
 			system.DeleteIfExists(filename) // reset journal
-			//logger.Debug('Journal cleanup completed')
+			Logger.Println("Journal cleanup completed")
 		}
 		//end
 	} else {
-		//logger.Debug('No previous process journal - Skipping cleanup')
+		Logger.Println("No previous process journal - Skipping cleanup")
 	}
 }
 
 func AppendPgidToJournal(journal_name string, pgid int) {
 
 	if isSkipPgid(pgid) {
-		//logger.Debug("Skipping invalid pgid #{pgid} (class #{pgid.class})")
+		Logger.Println("Skipping invalid pgid", pgid)
 		//return
 	}
 	filename := PgidJournalFilename(journal_name)
@@ -247,15 +246,21 @@ func AppendPgidToJournal(journal_name string, pgid int) {
 		}
 	}
 	if count > 0 {
-		//logger.Debug("Saving pgid #{pgid} to process journal #{journal_name}")
-		d1 := []byte(strconv.Itoa(pgid))
-		err := ioutil.WriteFile(filename, d1, 0600)
+		Logger.Println("Saving pgid", pgid, " to process journal", journal_name )
+		d1 := strconv.Itoa(pgid)
+		
+		f, err := os.OpenFile(filename, os.O_APPEND, 0666) 
+		f.WriteString(d1) 
+
+		//err := ioutil.WriteFile(filename, d1, 0600)
 		if err == nil {
-			//logger.Info("Saved pgid #{pgid} to journal #{journal_name}")
-			//logger.Debug("Journal now = #{File.open(filename, 'r').read}")
+			Logger.Println("Saved pgid", pgid, " to journal", journal_name )
+			//Logger.Println("Journal now = #{File.open(filename, 'r').read}")
 		}
+
+		f.Close()
 	} else {
-		//logger.Debug("Skipping duplicate pgid #{pgid} already in journal #{journal_name}")
+		Logger.Println("Skipping duplicate pgid" , pgid , " already in journal", journal_name )
 	}
 }
 
@@ -265,11 +270,11 @@ func AppendPidToJournal(journal_name string, pid int) {
 	if err != nil {
 
 	} else {
-		AppendPgidToJournal(journal_name, pgid)
+		//AppendPgidToJournal(journal_name, pgid)
 	}
 
 	if isSkipPid(pid) {
-		//logger.Debug("Skipping invalid pid #{pid} (class #{pid.class})")
+		//Logger.Println("Skipping invalid pid #{pid} (class #{pid.class})")
 		return
 	}
 	filename := PidJournalFilename(journal_name)
@@ -281,14 +286,23 @@ func AppendPidToJournal(journal_name string, pid int) {
 		}
 	}
 	if count > 0 {
-		//logger.Debug("Saving pid #{pid} to process journal #{journal_name}")
-		d1 := []byte(strconv.Itoa(pid))
-		err := ioutil.WriteFile(filename, d1, 0600)
-		if err == nil {
-			//logger.Info("Saved pid #{pid} to journal #{journal_name}")
-			//logger.Debug("Journal now = #{File.open(filename, 'r').read}")
+		Logger.Println("Saving pid", pid , " to process journal" , journal_name )
+		d1 := strconv.Itoa(pid)
+		//err := ioutil.WriteFile(filename, d1, 0600)
+		_, err := os.Stat(filename)
+		if err != nil {
+			os.Create(filename)
 		}
+
+		f, err := os.OpenFile(filename, os.O_APPEND, 0666) 
+		f.WriteString(d1) 
+
+		if err == nil {
+			Logger.Println("Saved pid", pid, " to journal ", journal_name )
+			//Logger.Println("Journal now = #{File.open(filename, 'r').read}")
+		}
+
 	} else {
-		//logger.Debug("Skipping duplicate pid #{pid} already in journal #{journal_name}")
+		Logger.Println("Skipping duplicate pid", pid, " already in journal", journal_name )
 	}
 }
