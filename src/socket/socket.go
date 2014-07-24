@@ -20,7 +20,7 @@ var messages chan string = make(chan string)
 type Socket struct {
 	Listener        net.Listener
 	ListenerChannel chan string
-	Path string
+	Path            string
 }
 
 func NewSocket(base_dir string, name string) (*Socket, error) {

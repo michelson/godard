@@ -890,7 +890,7 @@ func (c *Process) RefreshChildren() {
 		//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
 		c.Logger.Println("Existing children: ")
 		for _, ch := range c.Children {
-			c.Logger.Println("Got new children:", new_children_pids ,"for:", ch.ActualPid())
+			c.Logger.Println("Got new children:", new_children_pids, "for:", ch.ActualPid())
 		}
 	}
 

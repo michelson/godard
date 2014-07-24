@@ -65,7 +65,7 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 
 	if options.KillTimeout > 0 {
 		c.KillTimeout = options.KillTimeout
-	}else{
+	} else {
 		c.KillTimeout = 10
 	}
 
@@ -77,7 +77,7 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 	logger_opts["stdout"] = c.isForeground()
 
 	c.Logger = logger.NewGodardLogger(logger_opts).PrefixWith(c.Name)
-	ProcessJournal.SetLogger( c.Logger.Logger )
+	ProcessJournal.SetLogger(c.Logger.Logger)
 	Debug = ProcessJournal.Logger
 
 	c.SetupSignalTraps()
@@ -127,10 +127,9 @@ func (c *Application) AddProcess(process *Process, group_name string) {
 	process.Logger = group.Logger
 	group.AddProcess(process)
 
-	/*
-	  Debug.Println("GROUPS COUNT: ", len(c.Groups) )
-	  Debug.Println("GROUPS PROCESSES: ", c.Groups["group"].Processes )
-	*/
+	//Debug.Println("GROUPS COUNT: ", len(c.Groups) )
+	//Debug.Println("GROUPS PROCESSES: ", c.Groups["group"].Processes )
+
 }
 
 func (c *Application) Load() {
@@ -153,12 +152,6 @@ func (c *Application) StartServer() {
 	ProcessJournal.KillAllFromAllJournals()
 	ProcessJournal.ClearAllAtomicFsLocks()
 
-	// err := syscall.Setpgid(0, 0)
-
-	//if err != nil {
-	//  Debug.Println("Errno::EPERM", err)
-	//}
-
 	//Daemonize.daemonize unless foreground?
 	//self.logger.reopen
 	// $0 = "bluepilld: #{self.name}"
@@ -175,7 +168,7 @@ func (c *Application) StartServer() {
 	sock, err := socket.NewSocket(c.BaseDir, c.Name)
 
 	if err != nil {
-		Debug.Println(err)
+		Debug.Println("SOCKET ERROR: ", err)
 	}
 	c.WritePidFile()
 	c.Sock = sock
@@ -232,26 +225,21 @@ func (c *Application) SetupSignalTraps() {
 		// Wait for a SIGINT or SIGKILL:
 		sig := <-cc
 		Debug.Printf("Caught signal %s: shutting down.", sig)
-		c.running = false
 		c.CleanUp()
 		// Stop listening (and unlink the socket if unix type):
 		c.Sock.Listener.Close()
-		//os.Remove("/tmp/godard.sock")
-		/*
-		   puts "Terminating..."
-		   cleanup
-		   @running = false
-		*/
+		c.running = false
 		// And we're done:
 		os.Exit(0)
 	}(sigc)
 }
 
 func (c *Application) SetupPidsDir() {
-	/*FileUtils.mkdir_p(self.pids_dir) unless File.exists?(self.pids_dir)
-	  # we need everybody to be able to write to the pids_dir as processes managed by
-	  # bluepill will be writing to this dir after they've dropped privileges
-	  FileUtils.chmod(0777, self.pids_dir)*/
+	/*
+	  we need everybody to be able to write to the pids_dir as processes managed by
+	  bluepill will be writing to this dir after they've dropped privileges
+	  FileUtils.chmod(0777, self.pids_dir)
+	*/
 	err := os.MkdirAll(c.PidsDir, 0777)
 	if err != nil {
 		Debug.Println("ERROR CREATING PIDS DIR", err)
@@ -259,29 +247,29 @@ func (c *Application) SetupPidsDir() {
 }
 
 func (c *Application) KillPreviousGodard() {
-	fexists , _ := system.FileExists(c.PidFile)
+	fexists, _ := system.FileExists(c.PidFile)
 	if fexists {
 		previous_pid, _ := ioutil.ReadFile(c.PidFile)
 		pid_int, _ := strconv.Atoi(string(previous_pid))
-    if system.IsPidAlive(pid_int){
-    	process, e := os.FindProcess(pid_int)
-    	if e != nil{
+		if system.IsPidAlive(pid_int) {
+			process, e := os.FindProcess(pid_int)
+			if e != nil {
 
-    	}
+			}
 			err := process.Signal(syscall.Signal(2))
 			if err != nil {
 				Debug.Println("Encountered error trying to kill previous godard:")
-			}else{
+			} else {
 				for j := 0; j <= c.KillTimeout; j++ {
-        	time.Sleep(500 * time.Millisecond)
-        	if system.IsPidAlive(pid_int){
-        		break
-        	}
-    		}
+					time.Sleep(500 * time.Millisecond)
+					if system.IsPidAlive(pid_int) {
+						break
+					}
+				}
 
 				os.Exit(4)
 			}
-    }
+		}
 	}
 
 }
