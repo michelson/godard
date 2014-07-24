@@ -10,7 +10,9 @@ package condition
 import (
 	"fmt"
 	"log"
+	"reflect"
 	system "system"
+	util "util"
 )
 
 type MemoryUsage struct {
@@ -20,10 +22,25 @@ type MemoryUsage struct {
 
 func NewMemoryUsage(options map[string]interface{}) *MemoryUsage {
 	var below float64
-	below = float64(options["below"].(float64))
 	var logger *log.Logger = options["logger"].(*log.Logger)
-	c := &MemoryUsage{Below: below, Logger: logger}
-	c.Logger.Println("CREATING PROCESS CONDITION BELOW", c.Below)
+	type_of_value := reflect.TypeOf(options["below"])
+
+	c := &MemoryUsage{Logger: logger}
+
+	switch type_of_value.Kind() {
+	case reflect.String:
+		v, err := util.ParseNumber(options["below"].(string))
+		if err != nil {
+			logger.Println("error while parsing below options", options["below"])
+		}
+		below = v
+		c.Below = below
+	case reflect.Int:
+		below = options["below"].(float64) * 1024 * 1024
+		c.Below = below
+	}
+
+	c.Logger.Println("CREATING PROCESS CONDITION BELOW", options["below"])
 	return c
 }
 
@@ -38,7 +55,7 @@ func (c *MemoryUsage) Run(pid int, include_children bool) (float64, error) { // 
 
 func (c *MemoryUsage) Check(value float64, include_children bool) (bool, error) {
 	//  value.kilobytes < c.Below
-	assert := value < c.Below
+	assert := (value * 1024 * 1024) < c.Below
 	return assert, nil
 }
 

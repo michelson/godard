@@ -10,8 +10,8 @@ func TestParseNumber(t *testing.T) {
 		t.Error("Expected 1024, got ", v)
 	}
 
-	v2, _ := ParseNumber("3.megabytes")
-	if v2 != 3145728 {
+	v2, _ := ParseNumber("100.megabytes")
+	if v2 != 104857600 {
 		t.Error("Expected 3145728, got ", v2)
 	}
 

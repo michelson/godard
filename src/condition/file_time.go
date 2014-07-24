@@ -3,7 +3,9 @@ package condition
 import (
 	"log"
 	"os"
+	"reflect"
 	"time"
+	util "util"
 )
 
 type FileTime struct {
@@ -15,9 +17,25 @@ type FileTime struct {
 func NewFileTime(options map[string]interface{}) *FileTime {
 	var below float64
 	var file string
-	below = float64(options["below"].(float64))
+	var logger *log.Logger = options["logger"].(*log.Logger)
 	file = options["filename"].(string)
-	c := &FileTime{Below: below, filename: file}
+	type_of_value := reflect.TypeOf(options["below"])
+
+	c := &FileTime{filename: file, Logger: logger}
+
+	switch type_of_value.Kind() {
+	case reflect.String:
+		v, err := util.TimeParse(options["below"].(string))
+		if err != nil {
+			logger.Println("error while parsing below options", options["below"])
+		}
+		below = v.Seconds()
+		c.Below = below
+	case reflect.Int:
+		below = options["below"].(float64)
+		c.Below = below
+	}
+
 	return c
 }
 
