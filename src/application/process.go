@@ -529,7 +529,7 @@ func (c *Process) isProcessRunning(force bool) bool {
 				//log.Printf("Failed to find process: %s\n", err)
 			} else {
 				err := process.Signal(syscall.Signal(0))
-				//log.Printf("process.Signal on pid %d returned: %v\n", c.ActualPid(), err)
+				//c.Logger.Printf("process.Signal on pid %d returned: %v\n", c.ActualPid(), err)
 				if err == nil {
 					c.process_running = true
 				}
@@ -825,6 +825,7 @@ func (c *Process) PidFromCommand() (string, error) {
 
 func (c *Process) SetActualPid(pid int64) {
 	var p int = int(pid)
+	//c.Logger.Println("SET ACTUAL PROCESS PID", p)
 	proc.AppendPidToJournal(c.Name, p) // be sure to always log the pid
 	c.actual_pid = pid
 }
@@ -889,13 +890,13 @@ func (c *Process) RefreshChildren() {
 		//logger.info "Existing children: #{@children.collect{|c| c.actual_pid}.join(",")}. Got new children: #{new_children_pids.inspect} for #{actual_pid}"
 		c.Logger.Println("Existing children: ")
 		for _, ch := range c.Children {
-			c.Logger.Println(ch.ActualPid())
+			c.Logger.Println("Got new children:", new_children_pids ,"for:", ch.ActualPid())
 		}
 	}
 
 	//Construct a new process wrapper for each new found children
 	for _, child_pid := range new_children_pids {
-		//ProcessJournal.append_pid_to_journal(name, child_pid)
+		proc.AppendPidToJournal(c.Name, child_pid["pid"].(int))
 		child_name := "<child(pid:" + child_pid["pid"].(string) + ")>"
 		//logger = self.logger.prefix_with(child_name)
 		child := c.ChildProcessFactory.CreateChildProcess(child_name, child_pid["pid"].(string), "logger")

@@ -65,6 +65,8 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 
 	if options.KillTimeout > 0 {
 		c.KillTimeout = options.KillTimeout
+	}else{
+		c.KillTimeout = 10
 	}
 
 	log.Println("PID FILE_:", c.PidFile)
@@ -224,7 +226,7 @@ func (c *Application) Run() {
 
 func (c *Application) SetupSignalTraps() {
 
-	sigc := make(chan os.Signal, 2)
+	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGTERM)
 	go func(cc chan os.Signal) {
 		// Wait for a SIGINT or SIGKILL:
@@ -257,46 +259,39 @@ func (c *Application) SetupPidsDir() {
 }
 
 func (c *Application) KillPreviousGodard() {
-	/*
-	     if File.exists?(self.pid_file)
-	       previous_pid = File.read(self.pid_file).to_i
-	       if System.pid_alive?(previous_pid)
-	         begin
-	           ::Process.kill(0, previous_pid)
-	           puts "Killing previous bluepilld[#{previous_pid}]"
-	           ::Process.kill(2, previous_pid)
-	         rescue Exception => e
-	           $stderr.puts "Encountered error trying to kill previous bluepill:"
-	           $stderr.puts "#{e.class}: #{e.message}"
-	           exit(4) unless e.is_a?(Errno::ESRCH)
-	         else
-	           kill_timeout.times do |i|
-	             sleep 0.5
-	             break unless System.pid_alive?(previous_pid)
-	           end
+	fexists , _ := system.FileExists(c.PidFile)
+	if fexists {
+		previous_pid, _ := ioutil.ReadFile(c.PidFile)
+		pid_int, _ := strconv.Atoi(string(previous_pid))
+    if system.IsPidAlive(pid_int){
+    	process, e := os.FindProcess(pid_int)
+    	if e != nil{
 
-	           if System.pid_alive?(previous_pid)
-	             $stderr.puts "Previous bluepilld[#{previous_pid}] didn't die"
-	             exit(4)
-	           end
-	         end
-	       end
-	     end
-	   end
-	*/
+    	}
+			err := process.Signal(syscall.Signal(2))
+			if err != nil {
+				Debug.Println("Encountered error trying to kill previous godard:")
+			}else{
+				for j := 0; j <= c.KillTimeout; j++ {
+        	time.Sleep(500 * time.Millisecond)
+        	if system.IsPidAlive(pid_int){
+        		break
+        	}
+    		}
+
+				os.Exit(4)
+			}
+    }
+	}
+
 }
 func (c *Application) CleanUp() {
-	/*
-	   def cleanup
-	     ProcessJournal.kill_all_from_all_journals
-	     ProcessJournal.clear_all_atomic_fs_locks
-	     begin
-	       System.delete_if_exists(self.socket.path) if self.socket
-	     rescue IOError
-	     end
-	     System.delete_if_exists(self.pid_file)
-	   end
-	*/
+	ProcessJournal.KillAllFromAllJournals()
+	ProcessJournal.ClearAllAtomicFsLocks()
+	if c.Sock != nil {
+		system.DeleteIfExists(c.Sock.Path)
+		system.DeleteIfExists(c.PidFile)
+	}
 }
 
 func (c *Application) sendToProcessOrGroup(method string, names ...string) {

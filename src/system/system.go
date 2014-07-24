@@ -241,7 +241,7 @@ func DeleteIfExists(filename string) {
 	if exists {
 		err := os.Remove(filename)
 		if err != nil {
-			log.Fatal("Warning: permission denied trying to delete #{filename}")
+			log.Fatal("Warning: permission denied trying to delete", err ,  filename )
 		}
 	}
 	/*
