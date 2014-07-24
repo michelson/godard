@@ -14,7 +14,7 @@ type HistoryValue struct {
 }
 
 type ConditionWatch struct {
-	Logger           string
+	Logger           *log.Logger
 	Name             string
 	Fires            []string
 	Every            time.Duration
@@ -28,13 +28,11 @@ type ConditionWatch struct {
 
 func NewConditionWatch(name string, options interface{}) *ConditionWatch {
 
-	/*
-	   @logger = options.delete(:logger)
-	*/
-
 	v := options.(map[string]interface{})
-	//log.Println("CREATING", name ,"CONDITION EVERY", v["every"])
+	//c.Logger.Println("CREATING", name ,"CONDITION EVERY", v["every"])
 	c := &ConditionWatch{}
+
+	c.Logger = v["logger"].(*log.Logger)
 
 	if _, ok := v["fires"]; ok {
 		c.Fires = append(c.Fires, v["fires"].(string))
@@ -50,13 +48,14 @@ func NewConditionWatch(name string, options interface{}) *ConditionWatch {
 		arr[1] = v["times"].(float64)
 		c.Times = arr
 	}
+
 	c.Name = name
 
 	/*@include_children = options.delete(:include_children) || false
 	  self.clear_history!
 	*/
 
-	//log.Println("WATCH", c.Name)
+	//c.Logger.Println("WATCH", c.Name)
 
 	conditions := make([]condition.ProcessCondition, 0)
 
@@ -83,7 +82,7 @@ func (c *ConditionWatch) Run(pid int, tick_number float64) []string {
 	fires := make([]string, 0)
 
 	if c.LastRanAt == 0 || (c.LastRanAt+c.Every.Seconds()) <= tick_number {
-		log.Println("TIME DURATION", (c.LastRanAt + c.Every.Seconds()), "VS", tick_number)
+		c.Logger.Println("TIME DURATION", (c.LastRanAt + c.Every.Seconds()), "VS", tick_number)
 		c.LastRanAt = tick_number
 
 		var value float64
@@ -94,7 +93,7 @@ func (c *ConditionWatch) Run(pid int, tick_number float64) []string {
 		formatted = c.ProcessCondition[0].FormatValue(value)
 		checked, _ = c.ProcessCondition[0].Check(value, false)
 
-		//log.Println("VAL", formatted , "CRITIC", checked)
+		//c.Logger.Println("VAL", formatted , "CRITIC", checked)
 		c.PushHistory(&HistoryValue{Value: formatted, Critical: checked})
 
 		if c.isFired() {
@@ -129,11 +128,11 @@ func (c *ConditionWatch) isFired() bool {
 			if !h.Critical {
 				count += 1
 			}
-			//log.Println("val:", h.Value , "critical", h.Critical, "times:", c.Times[1])
+			//c.Logger.Println("val:", h.Value , "critical", h.Critical, "times:", c.Times[1])
 		}
 	}
 
-	//log.Println("HISTORY:", count)
+	//c.Logger.Println("HISTORY:", count)
 	assert := count >= c.Times[1]
 
 	return assert

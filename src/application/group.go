@@ -2,7 +2,7 @@ package application
 
 import (
 	"log"
-	pcs "process"
+	//pcs "process"
 	"reflect"
 	"strings"
 	"time"
@@ -10,17 +10,19 @@ import (
 
 type Group struct {
 	Name      string
-	Processes []*pcs.Process
+	Processes []*Process
 	Options   []map[string]interface{}
+	Logger    *log.Logger
 }
 
-func NewGroup(name string) *Group {
+func NewGroup(name string, log_obj *log.Logger) *Group {
 	c := &Group{}
-	c.Processes = make([]*pcs.Process, 0)
+	c.Processes = make([]*Process, 0)
+	c.Logger = log_obj
 	return c
 }
 
-func (c *Group) AddProcess(process *pcs.Process) {
+func (c *Group) AddProcess(process *Process) {
 	c.Processes = append(c.Processes, process)
 }
 
@@ -37,8 +39,8 @@ func (c *Group) DetermineInitialState() {
 }
 
 func (c *Group) SendMethod(method string, process_name string) {
-	log.Println("SEND", method, "METHOD TO", process_name, " IS GOING TO BE SO COOL")
-	//log.Println(c.Processes)
+	c.Logger.Println("SEND", method, "METHOD TO", process_name, " IS GOING TO BE SO COOL")
+	//c.Logger.Println(c.Processes)
 
 	var affected []string
 	for _, process := range c.Processes {
@@ -52,22 +54,22 @@ func (c *Group) SendMethod(method string, process_name string) {
 		noblock_field := v.FieldByName("Group_" + method + "_noblock")
 		noblock := noblock_field.Interface().(bool)
 		if noblock {
-			log.Println("Command", method, " running in non-blocking mode.")
+			c.Logger.Println("Command", method, " running in non-blocking mode.")
 			//threads << Thread.new { process.handle_user_command("#{event}") }
 			go process.HandleUserCommand(method)
 
 			select {
 			case msg := <-process.ListenerChannel:
-				log.Println("PROCESS RECEIVED ACTION:", msg)
+				c.Logger.Println("PROCESS RECEIVED ACTION:", msg)
 				//args := strings.Split(msg, ":")
 				//threads = append(threads, msg)
 			case <-time.After(time.Second * 2):
-				log.Println("timeout 1")
+				c.Logger.Println("timeout 1")
 			default:
 			}
 
 		} else {
-			log.Println("Command", method, " running in blocking mode.")
+			c.Logger.Println("Command", method, " running in blocking mode.")
 			//thread = Thread.new { process.handle_user_command("#{event}") }
 			//thread.join
 		}
@@ -75,5 +77,5 @@ func (c *Group) SendMethod(method string, process_name string) {
 
 	// threads.each { |t| t.join } unless threads.nil?
 	// affected
-	log.Println("SOME AFFECTED ARE:", affected)
+	c.Logger.Println("SOME AFFECTED ARE:", affected)
 }

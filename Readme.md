@@ -3,10 +3,14 @@
 
 Godard is a simple process monitoring tool written in Go , and is a port from Bluepill library written in Ruby.
 
+![Alt text](./assets/gopher-godard.png)
+
 [![Build Status](https://travis-ci.org/michelson/godard.png)](https://travis-ci.org/michelson/godard)
 [![Dependency Status](https://gemnasium.com/michelson/godard.png)](https://gemnasium.com/michelson/godard)
 [![Code Climate](https://codeclimate.com/github/michelson/godard.png)](https://codeclimate.com/github/michelson/godard)
 [![Coverage Status](https://coveralls.io/repos/michelson/godard/badge.png)](https://coveralls.io/r/michelson/godard)
+
+
 
 ## Installation
 Clone this repo and build dependences and run.

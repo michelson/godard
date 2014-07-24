@@ -12,20 +12,21 @@ const mb_label string = "MB"
 const kb_label string = "KB"
 
 type CpuUsage struct {
-	Below float64
+	Below  float64
+	Logger *log.Logger
 }
 
 func NewCpuUsage(options map[string]interface{}) *CpuUsage {
-	var below float64
-	below = float64(options["below"].(float64))
-	c := &CpuUsage{Below: below}
-	log.Println("CREATING PROCESS CONDITION BELOW", c.Below)
+	var below float64 = float64(options["below"].(float64))
+	var logger *log.Logger = options["logger"].(*log.Logger)
+	c := &CpuUsage{Below: below, Logger: logger}
+	c.Logger.Println("CREATING PROCESS CONDITION BELOW", c.Below)
 	return c
 }
 
 func (c *CpuUsage) Run(pid int, include_children bool) (float64, error) {
 	val, err := system.CpuUsage(pid) //, include_children)
-	log.Println("CPU USAGE:", val)
+	c.Logger.Println("CPU USAGE:", val)
 	return val, err
 }
 

@@ -8,6 +8,7 @@ import (
 	cfg "godard_config"
 	//"github.com/barakmich/glog"
 	//"graph"
+	app "application"
 	"os"
 	"path"
 	"path/filepath"
@@ -94,7 +95,7 @@ func main() {
 	}
 
 	controller_opts["log_file"] = *LogFile
-	controller := NewController(controller_opts)
+	controller := app.NewController(controller_opts)
 
 	//fmt.Println(controller_opts)
 

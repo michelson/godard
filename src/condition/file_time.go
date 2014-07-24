@@ -1,6 +1,7 @@
 package condition
 
 import (
+	"log"
 	"os"
 	"time"
 )
@@ -8,6 +9,7 @@ import (
 type FileTime struct {
 	Below    float64
 	filename string
+	Logger   *log.Logger
 }
 
 func NewFileTime(options map[string]interface{}) *FileTime {

@@ -20,13 +20,15 @@ var messages chan string = make(chan string)
 type Socket struct {
 	Listener        net.Listener
 	ListenerChannel chan string
+	Path            string
 }
 
 func NewSocket(base_dir string, name string) (*Socket, error) {
 	// Create the socket to listen on:
 	log.Println("SOCKET PATH ", base_dir)
-	l, err := net.Listen("unix", SocketPath(base_dir, name))
 	c := &Socket{}
+	c.Path = SocketPath(base_dir, name)
+	l, err := net.Listen("unix", c.Path)
 	if err != nil {
 		log.Fatal(err)
 		return c, err
