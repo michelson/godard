@@ -86,13 +86,6 @@ func (c *GodardLogger) CreateLogger() *log.Logger {
 }
 
 func LoggerAdapter(log_file string) *log.Logger {
-	/*
-	   f, err := os.OpenFile(log_file, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	   if err != nil {
-	     log.Fatalf("error opening file: %v", err)
-	   }
-	   //logger = log.New(os.Stderr, "xxx: ", log.Ldate | log.Ltime | log.Lshortfile)
-	   log.SetOutput(f)*/
 
 	file, err := os.OpenFile(log_file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {

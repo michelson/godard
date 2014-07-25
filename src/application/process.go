@@ -91,6 +91,7 @@ type Process struct {
 	Logger *log.Logger
 
 	state_machine *fsm.FSM
+	PreviousState string
 
 	ListenerChannel chan map[string]string
 
@@ -304,6 +305,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 		},
 		fsm.Callbacks{
 			"before_event": func(e *fsm.Event) {
+				c.PreviousState = c.state_machine.Current()
 				c.Logger.Println("EXEC STATE CHANGE FROM", c.state_machine.Current())
 				c.NotifyTriggers(c.state_machine.Current())
 				if !c.state_machine.Is("stopping") {
@@ -409,20 +411,20 @@ func (c *Process) RecordTransition(transition string) {
 
 	*/
 
-	c.Transitioned = true
-	for _, watch := range c.Watches {
-		watch.ClearHistory()
+  if c.state_machine.Current() != c.PreviousState {
+  	c.PreviousState = ""
+		c.Transitioned = true
+		for _, watch := range c.Watches {
+			watch.ClearHistory()
+		}
+
+		if c.isMonitorChildren(){
+			c.Children = make([]*Process , 0)
+			c.Logger.Println("Clearing child list")
+		}
+
+		c.Logger.Println("TRANSITION TO: ", c.state_machine.Current())
 	}
-	/*
-	   # Also, when a process changes state, we should re-populate its child list
-	   if self.monitor_children?
-	     self.logger.warning "Clearing child list"
-	     self.children.clear
-	   end
-	*/
-
-	c.Logger.Println("TRANSITION TO: ", c.state_machine.Current())
-
 }
 
 func (c *Process) NotifyTriggers(transition string) {
