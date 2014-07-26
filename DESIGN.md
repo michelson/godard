@@ -1,7 +1,7 @@
 ## Godard Design
 Here are just some bullet points of the design. We'll add details later.
 
- * Each process monitors a single _application_, so you can have multiple bluepill processes on a system
+ * Each process monitors a single _application_, so you can have multiple godard processes on a system
  * Use rotational arrays for storing historical data for monitoring process conditions
  * Memo-ize output of _ps_ per tick as an optimization for applications with many processes
  * Use socket files to communicate between CLI and daemon

@@ -75,7 +75,7 @@ func (c *Socket) EchoServer(conn net.Conn) {
 		}
 
 		data := buf[0:nr]
-		println("Server got:", string(data))
+		//println("Server got:", string(data))
 		/*
 		 */
 		go func(data string) {

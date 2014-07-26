@@ -163,7 +163,7 @@ func KillAllFromAllJournals() {
 			names = append(names, name)
 		}
 	}
-	log.Println("FILES TO KILL", names)
+	//log.Println("FILES TO KILL", names)
 	for _, journal_name := range names {
 		KillAllFromJournal(journal_name)
 	}

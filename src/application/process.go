@@ -571,7 +571,32 @@ func (c *Process) StartProcess() {
 		   daemon_id
 		*/
 	} else {
+		/*
+		   # This is a self-daemonizing process
+		   with_timeout(start_grace_time, on_start_timeout) do
+		     result = System.execute_blocking(start_command, self.system_command_options)
+
+		     unless result[:exit_code].zero?
+		       logger.warning "Start command execution returned non-zero exit code:"
+		       logger.warning result.inspect
+		     end
+		   end
+		*/
+		/* //WORKING BLOCK
+		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
+		c.Logger.Println("EXEC RESULT :", result)
+		*/
 		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStart())
+
+		//c.ListenerChannel <- result
+
+		//result = System.execute_blocking(start_command, self.system_command_options)
+
+		//unless result[:exit_code].zero?
+		//  logger.warning "Start command execution returned non-zero exit code:"
+		//  logger.warning result.inspect
+		//end
 	}
 
 	c.SkipTicksFor(c.StartGraceTime.Seconds())
@@ -608,7 +633,18 @@ func (c *Process) StopProcess() {
 		}
 	}
 	if len(c.StopCommand) > 0 {
-		c.WithTimeout(c.StopGraceTime, "stop" , c.callbackableStop())
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStop())
+
+		/*
+		   with_timeout(stop_grace_time, "stop") do
+		     result = System.execute_blocking(cmd, self.system_command_options)
+
+		     unless result[:exit_code].zero?
+		       logger.warning "Stop command execution returned non-zero exit code:"
+		       logger.warning result.inspect
+		     end
+		   end
+		*/
 	} else if len(c.StopSignals) > 0 {
 		//issue stop signals with configurable delay between each
 		c.Logger.Println("Sending stop signals to", c.actual_pid)
@@ -646,13 +682,12 @@ func (c *Process) StopProcess() {
 
 }
 
-func (c*Process) callbackableStop() func() map[string]string {
+func (c*Process) callbackableStop() func() map[string]string{
 	return func() map[string]string {
 		cmd := c.PrepareCommand(c.StopCommand)
 		c.Logger.Println("Executing stop command:", cmd)
 		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
 		//c.Logger.Println("EXEC RESULT:", result)
-		c.Logger.Println("EXEC RESULT :", result)
 		return result
 	}
 }
@@ -661,8 +696,24 @@ func (c *Process) RestartProcess() {
 
 	if c.RestartCommand != "" {
 
-		c.WithTimeout(c.StopGraceTime, "restart" , c.callbackableReStart())
+		//MAKE FUNCTIONAL HERE!!!
+		/*
+		   with_timeout(restart_grace_time, "restart") do
+		     result = System.execute_blocking(cmd, self.system_command_options)
+
+		     unless result[:exit_code].zero?
+		       logger.warning "Restart command execution returned non-zero exit code:"
+		       logger.warning result.inspect
+		     end
+		   end
+		*/
+
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableRestart())
+
+
+
 		c.SkipTicksFor(c.RestartGraceTime.Seconds())
+
 	} else {
 		c.Logger.Println("No RestartCommand specified. Must stop and start to restart")
 
@@ -676,20 +727,18 @@ func (c *Process) RestartProcess() {
 
 		wg.Wait()
 	}
+
 }
 
-func (c*Process) callbackableReStart() func() map[string]string {
+func (c*Process) callbackableRestart() func() map[string]string{
 	return func() map[string]string {
 		cmd := c.PrepareCommand(c.RestartCommand)
 		c.Logger.Println("Executing restart command:", cmd)
 		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
 		c.Logger.Println("EXEC RESULT:", result)
-		//c.ListenerChannel <- result
 		return result
 	}
 }
-
-
 
 func (c *Process) CleanThreads() {
 	//@threads.each { |t| t.kill }
@@ -891,6 +940,28 @@ func (c *Process) PrepareCommand(command string) string {
 	return cmd
 }
 
+/*
+	func with_timeout(secs int , block func(int) int ) int{
+	  secs += 100
+	  secs = block(secs)
+	  return secs
+	}
+
+
+	func callbackable(uno int) func(int) int  {
+
+	    return func(uno int) int {
+	        uno = uno + 20
+	        return uno
+	    }
+	}
+
+	func some_func(num int ) int{
+	  num2 := with_timeout(num , callbackable(1) )
+	  return num2
+	}
+*/
+
 func (c *Process) WithTimeout(secs time.Duration, next_state string, block func() map[string]string ) { //secs int, next_state = nil, &blk) {
 
 		//Attempt to execute the passed block. If the block takes
@@ -908,7 +979,7 @@ func (c *Process) WithTimeout(secs time.Duration, next_state string, block func(
 		  case <-time.After(secs):
 					c.Logger.Println( "Execution is taking longer than expected.")
 					c.Logger.Println( "Did you forget to daemonize this process?")
-					c.Dispatch(next_state, "")
+ 					c.Dispatch(next_state, "")
 	  }
 
 	/*
