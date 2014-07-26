@@ -3,3 +3,4 @@
 + fix syslog support
 + implement trigger methods
 + stop signals
++ cli method log , status

@@ -301,7 +301,12 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 
 			{Name: "start", Src: []string{"unmonitored", "down"}, Dst: "starting"},
 
+			{Name: "stop", Src: []string{"up"}, Dst: "stopping"},
+
 			{Name: "restart", Src: []string{"up", "down"}, Dst: "restarting"},
+
+			{Name: "unmonitor", Src: []string{"up", "down", "restarting", "stopping", "starting"}, Dst: "unmonitored"},
+
 		},
 		fsm.Callbacks{
 			"before_event": func(e *fsm.Event) {

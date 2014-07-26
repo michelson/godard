@@ -39,9 +39,7 @@ func (c *Group) DetermineInitialState() {
 }
 
 func (c *Group) SendMethod(method string, process_name string) {
-	c.Logger.Println("SEND", method, "METHOD TO", process_name, " IS GOING TO BE SO COOL")
 	//c.Logger.Println(c.Processes)
-
 	var affected []string
 	for _, process := range c.Processes {
 		if len(process_name) > 0 && process_name != process.Name {
