@@ -2,4 +2,5 @@
 + check unmonitor command
 + check stop command , should restart after stop?
 + fix syslog support
-+ file time
++ implement trigger methods
++ stop signals

@@ -256,9 +256,9 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	// These defaults are overriden below if it's configured to be something else.
 	c.MonitorChildren = false
 	c.CacheActualPid = true
-	c.StartGraceTime = time.Second * 3
-	c.StopGraceTime = time.Second * 3
-	c.RestartGraceTime = time.Second * 3
+	c.StartGraceTime = time.Second * 30
+	c.StopGraceTime = time.Second * 30
+	c.RestartGraceTime = time.Second * 30
 	//@environment = {}
 	c.OnStartTimeout = "start"
 	c.Group_start_noblock = true
@@ -394,22 +394,6 @@ func (c *Process) Dispatch(event string, reason string) {
 }
 
 func (c *Process) RecordTransition(transition string) {
-	/*
-	   unless transition.loopback?
-	     @transitioned = true
-
-	     # When a process changes state, we should clear the memory of all the watches
-	     self.watches.each { |w| w.clear_history! }
-
-	     # Also, when a process changes state, we should re-populate its child list
-	     if self.monitor_children?
-	       self.logger.warning "Clearing child list"
-	       self.children.clear
-	     end
-	     logger.info "Going from #{transition.from_name} => #{transition.to_name}"
-	   end
-
-	*/
 
   if c.state_machine.Current() != c.PreviousState {
   	c.PreviousState = ""
@@ -587,32 +571,19 @@ func (c *Process) StartProcess() {
 		   daemon_id
 		*/
 	} else {
-		/*
-		   # This is a self-daemonizing process
-		   with_timeout(start_grace_time, on_start_timeout) do
-		     result = System.execute_blocking(start_command, self.system_command_options)
-
-		     unless result[:exit_code].zero?
-		       logger.warning "Start command execution returned non-zero exit code:"
-		       logger.warning result.inspect
-		     end
-		   end
-		*/
-		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
-
-		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
-		c.Logger.Println("EXEC RESULT :", result)
-		//c.ListenerChannel <- result
-
-		//result = System.execute_blocking(start_command, self.system_command_options)
-
-		//unless result[:exit_code].zero?
-		//  logger.warning "Start command execution returned non-zero exit code:"
-		//  logger.warning result.inspect
-		//end
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStart())
 	}
 
 	c.SkipTicksFor(c.StartGraceTime.Seconds())
+}
+
+func (c*Process) callbackableStart() func() map[string]string {
+	return func() map[string]string {
+		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
+		c.Logger.Println("EXEC RESULT :", result)
+		return result
+	}
 }
 
 func (c *Process) PreStartProcess() {
@@ -637,22 +608,7 @@ func (c *Process) StopProcess() {
 		}
 	}
 	if len(c.StopCommand) > 0 {
-		cmd := c.PrepareCommand(c.StopCommand)
-		c.Logger.Println("Executing stop command:", cmd)
-
-		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
-		//c.Logger.Println("EXEC RESULT:", result)
-		c.ListenerChannel <- result
-		/*
-		   with_timeout(stop_grace_time, "stop") do
-		     result = System.execute_blocking(cmd, self.system_command_options)
-
-		     unless result[:exit_code].zero?
-		       logger.warning "Stop command execution returned non-zero exit code:"
-		       logger.warning result.inspect
-		     end
-		   end
-		*/
+		c.WithTimeout(c.StopGraceTime, "stop" , c.callbackableStop())
 	} else if len(c.StopSignals) > 0 {
 		//issue stop signals with configurable delay between each
 		c.Logger.Println("Sending stop signals to", c.actual_pid)
@@ -690,29 +646,23 @@ func (c *Process) StopProcess() {
 
 }
 
+func (c*Process) callbackableStop() func() map[string]string {
+	return func() map[string]string {
+		cmd := c.PrepareCommand(c.StopCommand)
+		c.Logger.Println("Executing stop command:", cmd)
+		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+		//c.Logger.Println("EXEC RESULT:", result)
+		c.Logger.Println("EXEC RESULT :", result)
+		return result
+	}
+}
+
 func (c *Process) RestartProcess() {
 
 	if c.RestartCommand != "" {
-		cmd := c.PrepareCommand(c.RestartCommand)
-		c.Logger.Println("Executing restart command:", cmd)
-		//MAKE FUNCTIONAL HERE!!!
-		/*
-		   with_timeout(restart_grace_time, "restart") do
-		     result = System.execute_blocking(cmd, self.system_command_options)
 
-		     unless result[:exit_code].zero?
-		       logger.warning "Restart command execution returned non-zero exit code:"
-		       logger.warning result.inspect
-		     end
-		   end
-		*/
-
-		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
-		c.Logger.Println("EXEC RESULT:", result)
-		c.ListenerChannel <- result
-
+		c.WithTimeout(c.StopGraceTime, "restart" , c.callbackableReStart())
 		c.SkipTicksFor(c.RestartGraceTime.Seconds())
-
 	} else {
 		c.Logger.Println("No RestartCommand specified. Must stop and start to restart")
 
@@ -726,8 +676,20 @@ func (c *Process) RestartProcess() {
 
 		wg.Wait()
 	}
-
 }
+
+func (c*Process) callbackableReStart() func() map[string]string {
+	return func() map[string]string {
+		cmd := c.PrepareCommand(c.RestartCommand)
+		c.Logger.Println("Executing restart command:", cmd)
+		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+		c.Logger.Println("EXEC RESULT:", result)
+		//c.ListenerChannel <- result
+		return result
+	}
+}
+
+
 
 func (c *Process) CleanThreads() {
 	//@threads.each { |t| t.kill }
@@ -929,29 +891,26 @@ func (c *Process) PrepareCommand(command string) string {
 	return cmd
 }
 
-/*
-	func with_timeout(secs int , block func(int) int ) int{
-	  secs += 100
-	  secs = block(secs)
-	  return secs
-	}
+func (c *Process) WithTimeout(secs time.Duration, next_state string, block func() map[string]string ) { //secs int, next_state = nil, &blk) {
 
+		//Attempt to execute the passed block. If the block takes
+	  //too long, transition to the indicated next state.
 
-	func callbackable(uno int) func(int) int  {
+	  chanres := make(chan map[string]string, 1)
+	  go func() {
+	      res := block()
+	      chanres <- res
+	  }()
 
-	    return func(uno int) int {
-	        uno = uno + 20
-	        return uno
-	    }
-	}
+	  select {
+		  case res := <-chanres:
+		      log.Println(res)
+		  case <-time.After(secs):
+					c.Logger.Println( "Execution is taking longer than expected.")
+					c.Logger.Println( "Did you forget to daemonize this process?")
+					c.Dispatch(next_state, "")
+	  }
 
-	func some_func(num int ) int{
-	  num2 := with_timeout(num , callbackable(1) )
-	  return num2
-	}
-*/
-
-func (c *Process) WithTimeout(secs int, next_state string) { //secs int, next_state = nil, &blk) {
 	/*
 	   def with_timeout(secs, next_state = nil, &blk)
 	     # Attempt to execute the passed block. If the block takes
@@ -965,9 +924,6 @@ func (c *Process) WithTimeout(secs int, next_state string) { //secs int, next_st
 	     end
 	   end
 	*/
-	//Timeout.timeout(secs.to_f, &blk)
-
-	c.Dispatch(next_state, "")
 }
 
 //PROCESS
