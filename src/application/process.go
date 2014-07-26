@@ -344,7 +344,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 func (c *Process) Tick() {
 
 	if c.isSkippingTicks() {
-		//c.Logger.Println("SKIPPING TICKS")
+		c.Logger.Println("SKIPPING TICKS")
 	} else {
 		//c.skip_ticks_until = nil
 		c.process_running = false
@@ -357,10 +357,10 @@ func (c *Process) Tick() {
 
 		// run state machine transitions
 		if c.isProcessRunning(false) {
-			//c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
+			c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
 			c.state_machine.Event("tick_up")
 		} else {
-			//c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
+			c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
 			c.state_machine.Event("tick_down")
 		}
 
@@ -391,11 +391,12 @@ func (c *Process) isUp() bool {
 }
 
 func (c *Process) Dispatch(event string, reason string) {
-	c.event_mutex.Lock()
+	//comment mutex because WithTimeout somehow hangs process ticks
+	//c.event_mutex.Lock()
 	c.Statistics.RecordEvent(event, reason)
 	c.state_machine.Event(event)
 	c.Logger.Println("STATS: ", c.Statistics.Events)
-	c.event_mutex.Unlock()
+	//c.event_mutex.Unlock()
 }
 
 func (c *Process) RecordTransition(transition string) {
@@ -638,7 +639,7 @@ func (c *Process) StopProcess() {
 		}
 	}
 	if len(c.StopCommand) > 0 {
-		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStop())
+		c.WithTimeout(c.StartGraceTime, "stop" , c.callbackableStop())
 
 		/*
 		   with_timeout(stop_grace_time, "stop") do
@@ -865,21 +866,20 @@ func (c *Process) SkipTicksFor(seconds float64) {
 
 	var secs int64
 	secs = int64(seconds)
-	if c.skip_ticks_until > 0 {
+	if c.skip_ticks_until == 0 {
 		c.skip_ticks_until = time.Now().Unix() + secs
-		c.Logger.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
+		c.Logger.Println("SKIP TICKS UNTIL < 0", c.skip_ticks_until , time.Now().Unix())
 	} else {
 		c.skip_ticks_until = c.skip_ticks_until + secs
-		c.Logger.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
+		c.Logger.Println("SKIP TICKS UNTIL > 0", c.skip_ticks_until , time.Now().Unix())
 	}
 
 }
 
 func (c *Process) isSkippingTicks() bool {
 	t := time.Now()
-	//c.skip_ticks_until = time.Now()
 	value := false
-	//if c.skip_ticks_until != nil { //&& c.skip_ticks_until > t { //time.Since(t).Seconds()
+	//c.Logger.Println("SKIP:", t.Unix() - c.skip_ticks_until )
 	if c.skip_ticks_until > t.Unix() {
 		value = true
 	}
@@ -1016,14 +1016,13 @@ func NewTrigger(process *Process, options map[string]interface{}) *Trigger {
 	c := &Trigger{}
 	c.Name = options["name"].(string)
 	c.Process = process
-	//c.Logger = options["logger"]
+	c.Logger = options["logger"].(*log.Logger)
 	c.ScheduledEvents = make([]string, 0)
 	return c
 }
 
 func (c *Trigger) Reset() {
-	//self.cancel_all_events
-
+	c.CancellAllEvents()
 }
 
 func (c *Trigger) Notify(transition string) {
@@ -1032,7 +1031,6 @@ func (c *Trigger) Notify(transition string) {
 
 func (c *Trigger) Dispatch() {
 	//self.process.dispatch!(event, self.class.name.split("::").last)
-
 }
 
 func (c *Trigger) ScheduleEvent() {
@@ -1058,6 +1056,7 @@ func (c *Trigger) ScheduleEvent() {
 }
 
 func (c *Trigger) CancellAllEvents() {
+	c.Logger.Println("Cancelling all scheduled events")
 	/*
 	   self.logger.info "Canceling all scheduled events"
 	    self.mutex.synchronize do
