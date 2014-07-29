@@ -4,17 +4,17 @@
 Godard is a simple process monitoring tool written in Go , and is a port from Bluepill library written in Ruby.
 
 ![Alt text](./assets/gopher-godard.gif)
-
 [![Build Status](https://travis-ci.org/michelson/godard.png)](https://travis-ci.org/michelson/godard)
-
-[![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/michelson/godard).
-
-
+[![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/michelson/godard)
 
 ## Installation
-Clone this repo and build dependences and run.
+Clone this repo
+
+Build dependences.
 
     make deps
+
+And run.
 
     make run
 
@@ -62,7 +62,7 @@ Now if we want to do something more meaningful, like actually monitor the proces
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
-        "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
+        "cpu_usage":{ "every": "10.seconds", "below": "5%", "times": 3},
       }
     }
   ]
@@ -82,7 +82,7 @@ To watch memory usage, we just add one more line:
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
-        "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
+        "cpu_usage":{ "every": "10.seconds", "below": "5%", "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
       }
     }
@@ -100,7 +100,7 @@ To watch the modification time of a file, e.g. a log file to ensure the process 
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
-        "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
+        "cpu_usage":{ "every": "10.seconds", "below": "5%", "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3},
         "file_time":{ "every": "60.secs", "below": "3.minutes", "times": 3, "filename": "/tmp/some_file.log" }
       }
@@ -141,7 +141,7 @@ We can tell godard to give a process some grace time to start/stop/restart befor
       "stop_grace_time": "5.seconds",
       "restart_grace_time": "8.seconds",
       "checks": {
-        "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
+        "cpu_usage":{ "every": "10.seconds", "below": "5%", "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
       }
     }
@@ -182,7 +182,7 @@ If you want to run the process as someone other than root:
       "uid": "deploy",
       "gid": "deploy",
       "checks": {
-        "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
+        "cpu_usage":{ "every": "10.seconds", "below": "5%", "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
       }
     }

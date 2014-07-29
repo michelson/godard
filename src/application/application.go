@@ -19,11 +19,6 @@ import (
 )
 
 type Application struct {
-	/*start     string
-	  stop      string
-	  restart   string
-	  unmonitor string
-	  status    string*/
 
 	Foreground bool
 
@@ -69,7 +64,7 @@ func NewApplication(name string, options *cfg.GodardConfig) *Application {
 		c.KillTimeout = 10
 	}
 
-	log.Println("PID FILE_:", c.PidFile)
+	log.Println("PID FILE:", c.PidFile)
 	c.Groups = make(map[string]*Group, 0)
 
 	logger_opts := make(map[string]interface{}, 0)
@@ -134,16 +129,6 @@ func (c *Application) AddProcess(process *Process, group_name string) {
 
 func (c *Application) Load() {
 	c.StartServer()
-	/*def load
-	    begin
-	      self.start_server
-	    rescue StandardError => e
-	      $stderr.puts "Failed to start bluepill:"
-	      $stderr.puts "%s `%s`" % [e.class.name, e.message]
-	      $stderr.puts e.backtrace
-	      exit(5)
-	    end
-	end*/
 }
 
 func (c *Application) StartServer() {
@@ -154,14 +139,13 @@ func (c *Application) StartServer() {
 
 	//Daemonize.daemonize unless foreground?
 	//self.logger.reopen
-	// $0 = "bluepilld: #{self.name}"
+	//$0 = "godardd: #{self.name}"
 
 	for _, g := range c.Groups {
 		g.DetermineInitialState()
 	}
 
 	for _, g := range c.Groups {
-		//Debug.Println("GROUP: ", g,  k )
 		g.Tick()
 	}
 
@@ -216,7 +200,6 @@ func (c *Application) Run() {
 }
 
 //Private
-
 func (c *Application) SetupSignalTraps() {
 
 	sigc := make(chan os.Signal, 1)
@@ -273,6 +256,7 @@ func (c *Application) KillPreviousGodard() {
 	}
 
 }
+
 func (c *Application) CleanUp() {
 	ProcessJournal.KillAllFromAllJournals()
 	ProcessJournal.ClearAllAtomicFsLocks()
@@ -308,16 +292,9 @@ func (c *Application) sendToProcessOrGroup(method string, names ...string) {
 			//Debug.Println("THIS GROUP IS TARGETING JUST BY PROC ,", group)
 			group.SendMethod(method, process_name)
 		}
-		/*
-		   process_name = group_name
-		   self.groups.values.collect do |group|
-		     group.send(method, process_name)
-		   end.flatten */
 	} else {
 		//[]
 	}
-
-	//Debug.Println(group_name , process_name)
 }
 
 func (c *Application) GroupInString(name string) bool {

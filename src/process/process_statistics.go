@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 	util "util"
+	//"log"
 )
 
 type ProcessStatistics struct {
@@ -29,7 +30,11 @@ func (c *ProcessStatistics) ToS() string {
 
 	var str string
 	for i := len(c.Events.Array) - 1; i >= 0; i-- {
-		str += strings.Join([]string{c.Events.Array[i][0], c.Events.Array[i][1], c.Events.Array[i][2]}, "-")
+		if len(c.Events.Array[i]) > 0 {
+
+			str += strings.Join([]string{c.Events.Array[i][0], c.Events.Array[i][1]}, "-")
+
+		}
 	}
 	return str
 }

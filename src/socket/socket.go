@@ -3,12 +3,8 @@ package socket
 import (
 	"log"
 	"net"
-	//"os"
-	//"os/signal"
-	//"syscall"
 	"io"
 	"path"
-	//"time"
 )
 
 //http://stackoverflow.com/questions/2886719/unix-sockets-in-go
@@ -127,6 +123,11 @@ func ClientCommand(base_dir string, name string, command string) (string, error)
 	msg := <-messages
 	//println("RES!!", msg)
 
+	res := msg
+
+	return res, nil
+}
+
 	/*
 	   def client_command(base_dir, name, command)
 	     res = nil
@@ -149,10 +150,6 @@ func ClientCommand(base_dir string, name string, command string) (string, error)
 	     res
 	   end
 	*/
-	res := msg
-
-	return res, nil
-}
 
 func SocketPath(base_dir string, name string) string {
 	s := path.Join(base_dir, "sock", name+".sock")

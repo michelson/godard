@@ -344,7 +344,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 func (c *Process) Tick() {
 
 	if c.isSkippingTicks() {
-		c.Logger.Println("SKIPPING TICKS")
+		//c.Logger.Println("SKIPPING TICKS")
 	} else {
 		//c.skip_ticks_until = nil
 		c.process_running = false
@@ -357,10 +357,10 @@ func (c *Process) Tick() {
 
 		// run state machine transitions
 		if c.isProcessRunning(false) {
-			c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
+			//c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
 			c.state_machine.Event("tick_up")
 		} else {
-			c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
+			//c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
 			c.state_machine.Event("tick_down")
 		}
 
@@ -566,29 +566,10 @@ func (c *Process) StartProcess() {
 	proc.KillAllFromJournal(c.Name)
 	c.PreStartProcess()
 	if c.isDaemonized() {
-		c.Logger.Println("Executing start cmd DEMONIZED:", c.StartCommand)
-		/* daemon_id = System.daemonize(start_command, self.system_command_options)
-		   if daemon_id
-		     ProcessJournal.append_pid_to_journal(name, daemon_id)
-		     children.each {|child|
-		       ProcessJournal.append_pid_to_journal(name, child.actual_id)
-		     } if self.monitor_children?
-		   end
-		   daemon_id
-		*/
+		c.Logger.Println("DEMONIZED OPTION NOT IMPLEMENTED:", c.StartCommand)
 	} else {
 		/*
-		   # This is a self-daemonizing process
-		   with_timeout(start_grace_time, on_start_timeout) do
-		     result = System.execute_blocking(start_command, self.system_command_options)
-
-		     unless result[:exit_code].zero?
-		       logger.warning "Start command execution returned non-zero exit code:"
-		       logger.warning result.inspect
-		     end
-		   end
-		*/
-		/* //WORKING BLOCK
+		//WORKING BLOCK
 		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
 		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 		c.Logger.Println("EXEC RESULT :", result)
@@ -610,7 +591,7 @@ func (c *Process) StartProcess() {
 
 func (c*Process) callbackableStart() func() map[string]string {
 	return func() map[string]string {
-		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+		c.Logger.Println("Executing start SELF-DEMONIZED process:", c.StartCommand)
 		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 		c.Logger.Println("EXEC RESULT :", result)
 		return result
