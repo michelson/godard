@@ -30,9 +30,8 @@ func NewController(options map[string]interface{}) *Controller {
 
 	c.setup_dir_structure()
 	c.cleanup_godard_directory()
-	log.Println("CREATING NEW CONTROLLER")
+	//log.Println("CREATING NEW CONTROLLER")
 	return c
-
 }
 
 func (c *Controller) RunningApplications() []string {
@@ -55,13 +54,13 @@ func (c *Controller) HandleCommand(application string, command string, args ...s
 		c.send_to_daemon(application, command, args)
 	case "start", "stop", "restart", "unmonitor":
 		affected := c.send_to_daemon(application, command, args)
-		//log.Println("AFFECTED:", affected)
-		if len(affected) == 0 {
-			log.Println("No processes affected")
+		log.Println("AFFECTED:", affected)
+		/*if len(affected) == 0 {
+			//log.Println("No processes affected")
 		} else {
-			log.Println("SOME EXTRA ARGS:", args)
-			log.Println("SENT", command, "CMD TO:", affected)
-		}
+			//log.Println("SOME EXTRA ARGS:", args)
+			//log.Println("SENT", command, "CMD TO:", affected)
+		}*/
 	case "quit":
 		log.Println("HANDLE", command, " COMMAND FOR:", application, args)
 
@@ -80,7 +79,7 @@ func (c *Controller) HandleCommand(application string, command string, args ...s
 					log.Println("Killing Godard", pid)
 				}
 			} else {
-				log.Println("bluepilld", pid, " not running")
+				log.Println("godard", pid, " not running")
 			}
 		}
 
@@ -110,25 +109,6 @@ func (c *Controller) send_to_daemon(application string, command string, args []s
 
 	}
 	return res
-	/*
-	   begin
-	     verify_version!(application)
-
-	     command = ([command, *args]).join(":")
-	     response = Socket.client_command(base_dir, application, command)
-	     if response.is_a?(Exception)
-	       $stderr.puts "Received error from server:"
-	       $stderr.puts response.inspect
-	       $stderr.puts response.backtrace.join("\n")
-	       exit(8)
-	     else
-	       response
-	     end
-
-	   rescue Errno::ECONNREFUSED
-	     abort("Connection Refused: Server is not running")
-	   end
-	*/
 }
 
 func (c *Controller) grep_pattern(application *Application, query string) {
@@ -138,7 +118,6 @@ func (c *Controller) grep_pattern(application *Application, query string) {
 	*/
 }
 
-//def cleanup_godard_directory
 func (c *Controller) cleanup_godard_directory() {
 
 	for _, app := range c.RunningApplications() {
@@ -166,10 +145,7 @@ func FileExists(path string) (bool, error) {
 
 //def PidFor(app)
 func (c *Controller) PidFor(app string) (int, error) {
-	/*
-	   pid_file = File.join(self.PidsFile, "#{app}.pid")
-	   File.exists?(pid_file) && File.read(pid_file).to_i
-	*/
+
 	pid_file := path.Join(c.PidsFile, app, app+".pid")
 	dat, err := ioutil.ReadFile(pid_file)
 

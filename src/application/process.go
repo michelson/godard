@@ -256,9 +256,9 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 	// These defaults are overriden below if it's configured to be something else.
 	c.MonitorChildren = false
 	c.CacheActualPid = true
-	c.StartGraceTime = time.Second * 3
-	c.StopGraceTime = time.Second * 3
-	c.RestartGraceTime = time.Second * 3
+	c.StartGraceTime = time.Second * 30
+	c.StopGraceTime = time.Second * 30
+	c.RestartGraceTime = time.Second * 30
 	//@environment = {}
 	c.OnStartTimeout = "start"
 	c.Group_start_noblock = true
@@ -301,7 +301,12 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 
 			{Name: "start", Src: []string{"unmonitored", "down"}, Dst: "starting"},
 
+			{Name: "stop", Src: []string{"up"}, Dst: "stopping"},
+
 			{Name: "restart", Src: []string{"up", "down"}, Dst: "restarting"},
+
+			{Name: "unmonitor", Src: []string{"up", "down", "restarting", "stopping", "starting"}, Dst: "unmonitored"},
+
 		},
 		fsm.Callbacks{
 			"before_event": func(e *fsm.Event) {
@@ -339,7 +344,7 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 func (c *Process) Tick() {
 
 	if c.isSkippingTicks() {
-		//c.Logger.Println("SKIPPING TICKS")
+		c.Logger.Println("SKIPPING TICKS")
 	} else {
 		//c.skip_ticks_until = nil
 		c.process_running = false
@@ -352,10 +357,10 @@ func (c *Process) Tick() {
 
 		// run state machine transitions
 		if c.isProcessRunning(false) {
-			//c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
+			c.Logger.Println("TICKS UP WITH", c.state_machine.Current())
 			c.state_machine.Event("tick_up")
 		} else {
-			//c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
+			c.Logger.Println("TICKS DOWN WITH CURRENT", c.state_machine.Current())
 			c.state_machine.Event("tick_down")
 		}
 
@@ -386,30 +391,15 @@ func (c *Process) isUp() bool {
 }
 
 func (c *Process) Dispatch(event string, reason string) {
-	c.event_mutex.Lock()
+	//comment mutex because WithTimeout somehow hangs process ticks
+	//c.event_mutex.Lock()
 	c.Statistics.RecordEvent(event, reason)
 	c.state_machine.Event(event)
 	c.Logger.Println("STATS: ", c.Statistics.Events)
-	c.event_mutex.Unlock()
+	//c.event_mutex.Unlock()
 }
 
 func (c *Process) RecordTransition(transition string) {
-	/*
-	   unless transition.loopback?
-	     @transitioned = true
-
-	     # When a process changes state, we should clear the memory of all the watches
-	     self.watches.each { |w| w.clear_history! }
-
-	     # Also, when a process changes state, we should re-populate its child list
-	     if self.monitor_children?
-	       self.logger.warning "Clearing child list"
-	       self.children.clear
-	     end
-	     logger.info "Going from #{transition.from_name} => #{transition.to_name}"
-	   end
-
-	*/
 
   if c.state_machine.Current() != c.PreviousState {
   	c.PreviousState = ""
@@ -598,10 +588,13 @@ func (c *Process) StartProcess() {
 		     end
 		   end
 		*/
+		/* //WORKING BLOCK
 		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
-
 		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
 		c.Logger.Println("EXEC RESULT :", result)
+		*/
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStart())
+
 		//c.ListenerChannel <- result
 
 		//result = System.execute_blocking(start_command, self.system_command_options)
@@ -613,6 +606,15 @@ func (c *Process) StartProcess() {
 	}
 
 	c.SkipTicksFor(c.StartGraceTime.Seconds())
+}
+
+func (c*Process) callbackableStart() func() map[string]string {
+	return func() map[string]string {
+		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
+		c.Logger.Println("EXEC RESULT :", result)
+		return result
+	}
 }
 
 func (c *Process) PreStartProcess() {
@@ -637,12 +639,8 @@ func (c *Process) StopProcess() {
 		}
 	}
 	if len(c.StopCommand) > 0 {
-		cmd := c.PrepareCommand(c.StopCommand)
-		c.Logger.Println("Executing stop command:", cmd)
+		c.WithTimeout(c.StartGraceTime, "stop" , c.callbackableStop())
 
-		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
-		//c.Logger.Println("EXEC RESULT:", result)
-		c.ListenerChannel <- result
 		/*
 		   with_timeout(stop_grace_time, "stop") do
 		     result = System.execute_blocking(cmd, self.system_command_options)
@@ -690,11 +688,20 @@ func (c *Process) StopProcess() {
 
 }
 
+func (c*Process) callbackableStop() func() map[string]string{
+	return func() map[string]string {
+		cmd := c.PrepareCommand(c.StopCommand)
+		c.Logger.Println("Executing stop command:", cmd)
+		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+		//c.Logger.Println("EXEC RESULT:", result)
+		return result
+	}
+}
+
 func (c *Process) RestartProcess() {
 
 	if c.RestartCommand != "" {
-		cmd := c.PrepareCommand(c.RestartCommand)
-		c.Logger.Println("Executing restart command:", cmd)
+
 		//MAKE FUNCTIONAL HERE!!!
 		/*
 		   with_timeout(restart_grace_time, "restart") do
@@ -707,9 +714,9 @@ func (c *Process) RestartProcess() {
 		   end
 		*/
 
-		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
-		c.Logger.Println("EXEC RESULT:", result)
-		c.ListenerChannel <- result
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableRestart())
+
+
 
 		c.SkipTicksFor(c.RestartGraceTime.Seconds())
 
@@ -727,6 +734,16 @@ func (c *Process) RestartProcess() {
 		wg.Wait()
 	}
 
+}
+
+func (c*Process) callbackableRestart() func() map[string]string{
+	return func() map[string]string {
+		cmd := c.PrepareCommand(c.RestartCommand)
+		c.Logger.Println("Executing restart command:", cmd)
+		result := system.ExecuteBlocking(cmd, c.SystemCommandOptions())
+		c.Logger.Println("EXEC RESULT:", result)
+		return result
+	}
 }
 
 func (c *Process) CleanThreads() {
@@ -849,21 +866,20 @@ func (c *Process) SkipTicksFor(seconds float64) {
 
 	var secs int64
 	secs = int64(seconds)
-	if c.skip_ticks_until > 0 {
+	if c.skip_ticks_until == 0 {
 		c.skip_ticks_until = time.Now().Unix() + secs
-		c.Logger.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
+		c.Logger.Println("SKIP TICKS UNTIL < 0", c.skip_ticks_until , time.Now().Unix())
 	} else {
 		c.skip_ticks_until = c.skip_ticks_until + secs
-		c.Logger.Println("SKIP TICKS UNTIL", c.skip_ticks_until)
+		c.Logger.Println("SKIP TICKS UNTIL > 0", c.skip_ticks_until , time.Now().Unix())
 	}
 
 }
 
 func (c *Process) isSkippingTicks() bool {
 	t := time.Now()
-	//c.skip_ticks_until = time.Now()
 	value := false
-	//if c.skip_ticks_until != nil { //&& c.skip_ticks_until > t { //time.Since(t).Seconds()
+	//c.Logger.Println("SKIP:", t.Unix() - c.skip_ticks_until )
 	if c.skip_ticks_until > t.Unix() {
 		value = true
 	}
@@ -951,7 +967,26 @@ func (c *Process) PrepareCommand(command string) string {
 	}
 */
 
-func (c *Process) WithTimeout(secs int, next_state string) { //secs int, next_state = nil, &blk) {
+func (c *Process) WithTimeout(secs time.Duration, next_state string, block func() map[string]string ) { //secs int, next_state = nil, &blk) {
+
+		//Attempt to execute the passed block. If the block takes
+	  //too long, transition to the indicated next state.
+
+	  chanres := make(chan map[string]string, 1)
+	  go func() {
+	      res := block()
+	      chanres <- res
+	  }()
+
+	  select {
+		  case res := <-chanres:
+		      log.Println(res)
+		  case <-time.After(secs):
+					c.Logger.Println( "Execution is taking longer than expected.")
+					c.Logger.Println( "Did you forget to daemonize this process?")
+ 					c.Dispatch(next_state, "")
+	  }
+
 	/*
 	   def with_timeout(secs, next_state = nil, &blk)
 	     # Attempt to execute the passed block. If the block takes
@@ -965,9 +1000,6 @@ func (c *Process) WithTimeout(secs int, next_state string) { //secs int, next_st
 	     end
 	   end
 	*/
-	//Timeout.timeout(secs.to_f, &blk)
-
-	c.Dispatch(next_state, "")
 }
 
 //PROCESS
@@ -984,14 +1016,13 @@ func NewTrigger(process *Process, options map[string]interface{}) *Trigger {
 	c := &Trigger{}
 	c.Name = options["name"].(string)
 	c.Process = process
-	//c.Logger = options["logger"]
+	c.Logger = options["logger"].(*log.Logger)
 	c.ScheduledEvents = make([]string, 0)
 	return c
 }
 
 func (c *Trigger) Reset() {
-	//self.cancel_all_events
-
+	c.CancellAllEvents()
 }
 
 func (c *Trigger) Notify(transition string) {
@@ -1000,7 +1031,6 @@ func (c *Trigger) Notify(transition string) {
 
 func (c *Trigger) Dispatch() {
 	//self.process.dispatch!(event, self.class.name.split("::").last)
-
 }
 
 func (c *Trigger) ScheduleEvent() {
@@ -1026,6 +1056,7 @@ func (c *Trigger) ScheduleEvent() {
 }
 
 func (c *Trigger) CancellAllEvents() {
+	c.Logger.Println("Cancelling all scheduled events")
 	/*
 	   self.logger.info "Canceling all scheduled events"
 	    self.mutex.synchronize do

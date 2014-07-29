@@ -19,7 +19,7 @@ import (
 var Application string
 var configFile = flag.String("config", "", "Path to an explicit configuration file.")
 var LogFile = flag.String("l", "", "Path to logfile, defaults to #{options[:log_file]}")
-var BaseDir = flag.String("c", "", "Directory to store bluepill socket and pid files, defaults to #{options[:base_dir]}")
+var BaseDir = flag.String("c", "", "Directory to store godard socket and pid files, defaults to #{options[:base_dir]}")
 var Privileged = flag.Bool("no-privileged", false, "Allow/disallow to run #{$0} as non-privileged process. disallowed by default")
 var Timeout = flag.Int("t", 10, "Timeout for commands sent to the daemon, in seconds. Defaults to 10.")
 var Attempts = flag.Int("attempts Count", 1, "Attempts for commands sent to the daemon, in seconds. Defaults to 1.")
@@ -98,15 +98,13 @@ func main() {
 	controller := app.NewController(controller_opts)
 
 	//fmt.Println(controller_opts)
-
 	basefile, _ := osext.Executable()
-	fmt.Println("CMD", cmd, "ARGS", os.Args, "CONTROLLER:", controller, "BASE FILE", basefile)
-
+	//fmt.Println("CMD", cmd, "ARGS", os.Args, "CONTROLLER:", controller, "BASE FILE", basefile)
 	//fmt.Println("BASE IN APPS", BaseName(basefile), controller.RunningApplications(),  stringInSlice(BaseName(basefile), controller.RunningApplications()))
 	//fmt.Println("ARG IN APPS", os.Args[1], controller.RunningApplications(),  stringInSlice(os.Args[1], controller.RunningApplications()) )
 
 	if stringInSlice(BaseName(basefile), controller.RunningApplications()) && isSymlink(basefile) {
-		// bluepill was called as a symlink with the name of the target application
+		// godard was called as a symlink with the name of the target application
 		controller_opts["application"] = basefile
 		fmt.Println("godard was called as a symlink with the name of the target applicatio")
 
@@ -134,11 +132,10 @@ func main() {
 			os.Exit(2)
 		}
 
-	} else {
-		fmt.Println("NONE OF THE ABOVE")
-
 	}
-
+	//else {
+	//	fmt.Println("NONE OF THE ABOVE")
+	//}
 	//fmt.Println("ARGS:", os.Args[0])
 
 	if cmd == "load" {
@@ -148,10 +145,14 @@ func main() {
 		godard.Init(config)
 	} else {
 		target := os.Args[len(os.Args)-1] //ARGV.shift
-		fmt.Println("HANDLE COMMAND NOW:", controller_opts["application"], cmd, target)
-		app := controller_opts["application"].(string)
+		if controller_opts["application"] != nil {
+			fmt.Println("HANDLE COMMAND NOW:", controller_opts["application"], cmd, target)
+			app := controller_opts["application"].(string)
+			controller.HandleCommand(app, cmd, target)
+		}else{
+			fmt.Println("Don´t know how to handle", cmd, target)
+		}
 
-		controller.HandleCommand(app, cmd, target)
 	}
 }
 
