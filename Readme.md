@@ -3,12 +3,11 @@
 
 Godard is a simple process monitoring tool written in Go , and is a port from Bluepill library written in Ruby.
 
-![Alt text](./assets/gopher-godard.png)
+![Alt text](./assets/gopher-godard.gif)
 
 [![Build Status](https://travis-ci.org/michelson/godard.png)](https://travis-ci.org/michelson/godard)
-[![Dependency Status](https://gemnasium.com/michelson/godard.png)](https://gemnasium.com/michelson/godard)
-[![Code Climate](https://codeclimate.com/github/michelson/godard.png)](https://codeclimate.com/github/michelson/godard)
-[![Coverage Status](https://coveralls.io/repos/michelson/godard/badge.png)](https://coveralls.io/r/michelson/godard)
+
+[![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/michelson/godard).
 
 
 
@@ -16,8 +15,8 @@ Godard is a simple process monitoring tool written in Go , and is a port from Bl
 Clone this repo and build dependences and run.
 
     make deps
-    
-    make run 
+
+    make run
 
 
 In order to take advantage of logging with syslog, you also need to setup your syslog to log the local6 facility. Edit the appropriate config file for your syslogger (/etc/syslog.conf for syslog) and add a line for local6:
@@ -36,9 +35,9 @@ The minimum config file looks something like this:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid"
     }
@@ -46,20 +45,10 @@ The minimum config file looks something like this:
 }
 ```
 
-Note that since we specified a PID file and start command, godard assumes the process will daemonize itself. If we wanted godard to daemonize it for us, we can do (note we still need to specify a PID file):
+Note that since we specified a PID file and start command, godard assumes the process will daemonize itself.
 
-```json
-{
-  "processes": 
-  [ {
-      "name": "process_name", 
-      "start_command": "/usr/bin/some_start_command",
-      "pid_file": "/tmp/some_pid_file.pid",
-      daemonize: true
-    }
-  ]
-}
-```
+Unlike Bluepill, Godard will not daemonize processes. so the option ```daemonize: true``` is not, yet, available.
+
 
 If you don&apos;t specify a stop command, a TERM signal will be sent by default. Similarly, the default restart action is to issue stop and then start.
 
@@ -67,14 +56,14 @@ Now if we want to do something more meaningful, like actually monitor the proces
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
         "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
-      } 
+      }
     }
   ]
 }
@@ -87,15 +76,15 @@ To watch memory usage, we just add one more line:
 ```json
 
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
         "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
-      } 
+      }
     }
   ]
 }
@@ -105,16 +94,16 @@ To watch the modification time of a file, e.g. a log file to ensure the process 
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
         "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3},
-        "file_time":{ "every": "60.secs", "below": "3.minutes", "times": 3, "filename": "/tmp/some_file.log", times: 2 }
-      } 
+        "file_time":{ "every": "60.secs", "below": "3.minutes", "times": 3, "filename": "/tmp/some_file.log" }
+      }
     }
   ]
 }
@@ -124,14 +113,14 @@ To restart process if it's running too long:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
         "running_time":{ "every": "60.secs", "below": "24.hours"}
-      } 
+      }
     }
   ]
 }
@@ -143,9 +132,9 @@ We can tell godard to give a process some grace time to start/stop/restart befor
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "start_grace_time": "3.seconds",
@@ -154,7 +143,7 @@ We can tell godard to give a process some grace time to start/stop/restart befor
       "checks": {
         "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
-      } 
+      }
     }
   ]
 }
@@ -164,18 +153,18 @@ We can group processes by name:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name_1", 
+      "name": "process_name_1",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
-      "group": "mongrels" 
+      "group": "mongrels"
     },
     {
-      "name": "process_name_2", 
+      "name": "process_name_2",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
-      "group": "mongrels" 
+      "group": "mongrels"
     }
   ]
 }
@@ -185,9 +174,9 @@ If you want to run the process as someone other than root:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "uid": "deploy",
@@ -195,7 +184,7 @@ If you want to run the process as someone other than root:
       "checks": {
         "cpu_usage":{ "every": "10.seconds", "below": 5, "times": 3},
         "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3}
-      } 
+      }
     }
   ]
 }
@@ -205,9 +194,9 @@ If you want to include one or more supplementary groups:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "uid": "deploy",
@@ -224,9 +213,9 @@ You can also set an app-wide uid/gid:
 {
   "uid": "deploy",
   "gid": "deploy",
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "supplementary_groups": ["rvm"]
@@ -238,14 +227,14 @@ You can also set an app-wide uid/gid:
 To track resources of child processes, use :include_children:
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "checks": {
-        "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3, include_children: true }
-      } 
+        "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3, "include_children": true }
+      }
     }
   ]
 }
@@ -261,9 +250,9 @@ To set the working directory to _cd_ into when starting the command:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "working_dir": "/path/to/some_directory"
@@ -277,9 +266,9 @@ You can also have an app-wide working directory:
 ```json
 {
   "working_dir": "/path/to/some_directory",
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
     }
@@ -294,9 +283,9 @@ To change the stop command:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "stop_command": "/user/bin/some_stop_command"
@@ -309,9 +298,9 @@ If you'd like to send a signal or signals to your process to stop it:
 
 ```json
 {
-  "processes": 
+  "processes":
   [ {
-      "name": "process_name", 
+      "name": "process_name",
       "start_command": "/usr/bin/some_start_command",
       "pid_file": "/tmp/some_pid_file.pid",
       "stop_signals": ["quit", "30.seconds", "term", "5.seconds", "kill"]
@@ -327,7 +316,7 @@ to see if the process is still up, and finally send a SIGKILL.
 And lastly, to monitor child processes:
 
 ```json
-monitor_children: {
+"monitor_children": {
   "checks": {
     "mem_usage":{ "every": "10.secs", "below": "100.megabytes", "times": 3 }
   },
