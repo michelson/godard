@@ -1,9 +1,9 @@
 package socket
 
 import (
+	"io"
 	"log"
 	"net"
-	"io"
 	"path"
 )
 
@@ -72,8 +72,7 @@ func (c *Socket) EchoServer(conn net.Conn) {
 
 		data := buf[0:nr]
 		//println("Server got:", string(data))
-		/*
-		 */
+
 		go func(data string) {
 			c.ListenerChannel <- string(data)
 		}(string(data))
@@ -128,28 +127,28 @@ func ClientCommand(base_dir string, name string, command string) (string, error)
 	return res, nil
 }
 
-	/*
-	   def client_command(base_dir, name, command)
-	     res = nil
-	     MAX_ATTEMPTS.times do |current_attempt|
-	       begin
-	         client(base_dir, name) do |socket|
-	           Timeout.timeout(TIMEOUT) do
-	             socket.puts command
-	             res = Marshal.load(socket.read)
-	           end
-	         end
-	         break
-	       rescue EOFError, Timeout::Error
-	         if current_attempt == MAX_ATTEMPTS - 1
-	           abort("Socket Timeout: Server may not be responding")
-	         end
-	         puts "Retry #{current_attempt + 1} of #{MAX_ATTEMPTS}"
-	       end
-	     end
-	     res
-	   end
-	*/
+/*
+   def client_command(base_dir, name, command)
+     res = nil
+     MAX_ATTEMPTS.times do |current_attempt|
+       begin
+         client(base_dir, name) do |socket|
+           Timeout.timeout(TIMEOUT) do
+             socket.puts command
+             res = Marshal.load(socket.read)
+           end
+         end
+         break
+       rescue EOFError, Timeout::Error
+         if current_attempt == MAX_ATTEMPTS - 1
+           abort("Socket Timeout: Server may not be responding")
+         end
+         puts "Retry #{current_attempt + 1} of #{MAX_ATTEMPTS}"
+       end
+     end
+     res
+   end
+*/
 
 func SocketPath(base_dir string, name string) string {
 	s := path.Join(base_dir, "sock", name+".sock")

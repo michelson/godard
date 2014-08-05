@@ -26,16 +26,6 @@ func PidAlive(pid int) bool {
 	} else {
 		return true
 	}
-	/*   def pid_alive?(pid)
-	     begin
-	       ::Process.kill(0, pid)
-	       true
-	     rescue Errno::EPERM # no permission, but it is definitely alive
-	       true
-	     rescue Errno::ESRCH
-	       false
-	     end
-	   end */
 }
 
 func PsAxu() ([]map[string]interface{}, error) {
@@ -361,98 +351,6 @@ func ExecuteBlocking(command string, options map[string]interface{}) map[string]
 	//log.Println("EXEC OPTIONS:", options)
 	return m
 }
-
-func aaExecuteBlocking(command string, options map[string]interface{}) map[string]string {
-	m := make(map[string]string)
-	m["stdout"] = "ss"
-	m["exit_code"] = "0"
-	return m
-}
-
-/*
-   # Returns the stdout, stderr and exit code of the cmd
-   def execute_blocking(cmd, options = {})
-     rd, wr = IO.pipe
-
-     if child = Daemonize.safefork
-       # parent
-       wr.close
-
-       cmd_status = rd.read
-       rd.close
-
-       ::Process.waitpid(child)
-
-       cmd_status.strip != '' ? Marshal.load(cmd_status) : {:exit_code => 0, :stdout => '', :stderr => ''}
-     else
-       # child
-       rd.close
-
-       # create a child in which we can override the stdin, stdout and stderr
-       cmd_out_read, cmd_out_write = IO.pipe
-       cmd_err_read, cmd_err_write = IO.pipe
-
-       pid = fork {
-         begin
-           # grandchild
-           drop_privileges(options[:uid], options[:gid], options[:supplementary_groups])
-
-           Dir.chdir(ENV["PWD"] = options[:working_dir].to_s) if options[:working_dir]
-           options[:environment].each { |key, value| ENV[key.to_s] = value.to_s } if options[:environment]
-
-           # close unused fds so ancestors wont hang. This line is the only reason we are not
-           # using something like popen3. If this fd is not closed, the .read call on the parent
-           # will never return because "wr" would still be open in the "exec"-ed cmd
-           wr.close
-
-           # we do not care about stdin of cmd
-           STDIN.reopen("/dev/null")
-
-           # point stdout of cmd to somewhere we can read
-           cmd_out_read.close
-           STDOUT.reopen(cmd_out_write)
-           cmd_out_write.close
-
-           # same thing for stderr
-           cmd_err_read.close
-           STDERR.reopen(cmd_err_write)
-           cmd_err_write.close
-
-           # finally, replace grandchild with cmd
-           ::Kernel.exec(*Shellwords.shellwords(cmd))
-         rescue Exception => e
-           (cmd_err_write.closed? ? STDERR : cmd_err_write).puts "Exception in grandchild: #{e.to_s}."
-           (cmd_err_write.closed? ? STDERR : cmd_err_write).puts e.backtrace
-           exit 1
-         end
-       }
-
-       # we do not use these ends of the pipes in the child
-       cmd_out_write.close
-       cmd_err_write.close
-
-       # wait for the cmd to finish executing and acknowledge it's death
-       ::Process.waitpid(pid)
-
-       # collect stdout, stderr and exitcode
-       result = {
-         :stdout => cmd_out_read.read,
-         :stderr => cmd_err_read.read,
-         :exit_code => $?.exitstatus
-       }
-
-       # We're done with these ends of the pipes as well
-       cmd_out_read.close
-       cmd_err_read.close
-
-       # Time to tell the parent about what went down
-       wr.write Marshal.dump(result)
-       wr.close
-
-       ::Process.exit!
-     end
-   end
-*/
 
 func IsPidAlive(pid int) bool {
 	res := false

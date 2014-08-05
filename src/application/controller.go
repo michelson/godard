@@ -61,19 +61,19 @@ func (c *Controller) HandleCommand(application string, command string, args ...s
 			//log.Println("SOME EXTRA ARGS:", args)
 			//log.Println("SENT", command, "CMD TO:", affected)
 		}*/
-	case "log"
+	case "log":
 		//log_file_location := c.send_to_daemon(application, "log_file")
 		//
 		/*  log_file_location = self.send_to_daemon(application, :log_file)
-        log_file_location = self.log_file if log_file_location.to_s.strip.empty?
+		    log_file_location = self.log_file if log_file_location.to_s.strip.empty?
 
-        requested_pattern = args.first
-        grep_pattern = self.grep_pattern(application, requested_pattern)
+		    requested_pattern = args.first
+		    grep_pattern = self.grep_pattern(application, requested_pattern)
 
-        tail = "tail -n 100 -f #{log_file_location} | grep -E '#{grep_pattern}'"
-        puts "Tailing log for #{requested_pattern}..."
-        Kernel.exec(tail)
-    */
+		    tail = "tail -n 100 -f #{log_file_location} | grep -E '#{grep_pattern}'"
+		    puts "Tailing log for #{requested_pattern}..."
+		    Kernel.exec(tail)
+		*/
 	case "quit":
 		log.Println("HANDLE", command, " COMMAND FOR:", application, args)
 

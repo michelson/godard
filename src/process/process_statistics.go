@@ -32,7 +32,7 @@ func (c *ProcessStatistics) ToS() string {
 	for i := len(c.Events.Array) - 1; i >= 0; i-- {
 		if len(c.Events.Array[i]) > 0 {
 
-			str += strings.Join([]string{c.Events.Array[i][0], c.Events.Array[i][1]}, "-")
+			str += strings.Join([]string{c.Events.Array[i][0], c.Events.Array[i][1]}, " ")
 
 		}
 	}

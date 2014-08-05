@@ -149,7 +149,7 @@ func main() {
 			fmt.Println("HANDLE COMMAND NOW:", controller_opts["application"], cmd, target)
 			app := controller_opts["application"].(string)
 			controller.HandleCommand(app, cmd, target)
-		}else{
+		} else {
 			fmt.Println("Don´t know how to handle", cmd, target)
 		}
 

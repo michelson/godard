@@ -70,16 +70,9 @@ func (c *GodardLogger) CreateLogger() *log.Logger {
 
 		log.Println("LOGGING TO: syslog myprog")
 		// Configure logger to write to the syslog. You could do this in init(), too.
-		logwriter, e := syslog.New(syslog.LOG_LOCAL6, "myprog")
-		if e == nil {
-			log.SetOutput(logwriter)
-		}
-		/*err := syslog.Close()
-		  if err != nil {
-		    log.Println("error ", err)
-		  }*/
-		//Syslog.close if Syslog.opened? # need to explictly close it before reopening it
-		//Syslog.open(@options[:identity] || 'godardd', Syslog::LOG_PID, Syslog::LOG_LOCAL6)
+		l, _ := syslog.NewLogger(syslog.LOG_NOTICE|syslog.LOG_LOCAL6, 0)
+
+		Logger = l
 		return Logger
 	}
 

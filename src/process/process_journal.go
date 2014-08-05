@@ -90,7 +90,7 @@ func PgidJournalFilename(journal_name string) string {
 }
 
 func PidJournal(filename string) []int {
-	Logger.Println("pid journal file:", filename )
+	Logger.Println("pid journal file:", filename)
 
 	var arr []int
 	exists, _ := system.FileExists(filename)

@@ -306,7 +306,6 @@ func NewProcess(process_name string, checks map[string]interface{}, options map[
 			{Name: "restart", Src: []string{"up", "down"}, Dst: "restarting"},
 
 			{Name: "unmonitor", Src: []string{"up", "down", "restarting", "stopping", "starting"}, Dst: "unmonitored"},
-
 		},
 		fsm.Callbacks{
 			"before_event": func(e *fsm.Event) {
@@ -401,15 +400,15 @@ func (c *Process) Dispatch(event string, reason string) {
 
 func (c *Process) RecordTransition(transition string) {
 
-  if c.state_machine.Current() != c.PreviousState {
-  	c.PreviousState = ""
+	if c.state_machine.Current() != c.PreviousState {
+		c.PreviousState = ""
 		c.Transitioned = true
 		for _, watch := range c.Watches {
 			watch.ClearHistory()
 		}
 
-		if c.isMonitorChildren(){
-			c.Children = make([]*Process , 0)
+		if c.isMonitorChildren() {
+			c.Children = make([]*Process, 0)
 			c.Logger.Println("Clearing child list")
 		}
 
@@ -569,12 +568,12 @@ func (c *Process) StartProcess() {
 		c.Logger.Println("DEMONIZED OPTION NOT IMPLEMENTED:", c.StartCommand)
 	} else {
 		/*
-		//WORKING BLOCK
-		c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
-		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
-		c.Logger.Println("EXEC RESULT :", result)
+			//WORKING BLOCK
+			c.Logger.Println("Executing start cmd SELF-DEMONIZED:", c.StartCommand)
+			result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
+			c.Logger.Println("EXEC RESULT :", result)
 		*/
-		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableStart())
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout, c.callbackableStart())
 
 		//c.ListenerChannel <- result
 
@@ -589,7 +588,7 @@ func (c *Process) StartProcess() {
 	c.SkipTicksFor(c.StartGraceTime.Seconds())
 }
 
-func (c*Process) callbackableStart() func() map[string]string {
+func (c *Process) callbackableStart() func() map[string]string {
 	return func() map[string]string {
 		c.Logger.Println("Executing start SELF-DEMONIZED process:", c.StartCommand)
 		result := system.ExecuteBlocking(c.StartCommand, c.SystemCommandOptions())
@@ -620,7 +619,7 @@ func (c *Process) StopProcess() {
 		}
 	}
 	if len(c.StopCommand) > 0 {
-		c.WithTimeout(c.StartGraceTime, "stop" , c.callbackableStop())
+		c.WithTimeout(c.StartGraceTime, "stop", c.callbackableStop())
 
 		/*
 		   with_timeout(stop_grace_time, "stop") do
@@ -669,7 +668,7 @@ func (c *Process) StopProcess() {
 
 }
 
-func (c*Process) callbackableStop() func() map[string]string{
+func (c *Process) callbackableStop() func() map[string]string {
 	return func() map[string]string {
 		cmd := c.PrepareCommand(c.StopCommand)
 		c.Logger.Println("Executing stop command:", cmd)
@@ -695,9 +694,7 @@ func (c *Process) RestartProcess() {
 		   end
 		*/
 
-		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout , c.callbackableRestart())
-
-
+		c.WithTimeout(c.StartGraceTime, c.OnStartTimeout, c.callbackableRestart())
 
 		c.SkipTicksFor(c.RestartGraceTime.Seconds())
 
@@ -717,7 +714,7 @@ func (c *Process) RestartProcess() {
 
 }
 
-func (c*Process) callbackableRestart() func() map[string]string{
+func (c *Process) callbackableRestart() func() map[string]string {
 	return func() map[string]string {
 		cmd := c.PrepareCommand(c.RestartCommand)
 		c.Logger.Println("Executing restart command:", cmd)
@@ -849,10 +846,10 @@ func (c *Process) SkipTicksFor(seconds float64) {
 	secs = int64(seconds)
 	if c.skip_ticks_until == 0 {
 		c.skip_ticks_until = time.Now().Unix() + secs
-		c.Logger.Println("SKIP TICKS UNTIL < 0", c.skip_ticks_until , time.Now().Unix())
+		c.Logger.Println("SKIP TICKS UNTIL < 0", c.skip_ticks_until, time.Now().Unix())
 	} else {
 		c.skip_ticks_until = c.skip_ticks_until + secs
-		c.Logger.Println("SKIP TICKS UNTIL > 0", c.skip_ticks_until , time.Now().Unix())
+		c.Logger.Println("SKIP TICKS UNTIL > 0", c.skip_ticks_until, time.Now().Unix())
 	}
 
 }
@@ -948,25 +945,25 @@ func (c *Process) PrepareCommand(command string) string {
 	}
 */
 
-func (c *Process) WithTimeout(secs time.Duration, next_state string, block func() map[string]string ) { //secs int, next_state = nil, &blk) {
+func (c *Process) WithTimeout(secs time.Duration, next_state string, block func() map[string]string) { //secs int, next_state = nil, &blk) {
 
-		//Attempt to execute the passed block. If the block takes
-	  //too long, transition to the indicated next state.
+	//Attempt to execute the passed block. If the block takes
+	//too long, transition to the indicated next state.
 
-	  chanres := make(chan map[string]string, 1)
-	  go func() {
-	      res := block()
-	      chanres <- res
-	  }()
+	chanres := make(chan map[string]string, 1)
+	go func() {
+		res := block()
+		chanres <- res
+	}()
 
-	  select {
-		  case res := <-chanres:
-		      log.Println(res)
-		  case <-time.After(secs):
-					c.Logger.Println( "Execution is taking longer than expected.")
-					c.Logger.Println( "Did you forget to daemonize this process?")
- 					c.Dispatch(next_state, "")
-	  }
+	select {
+	case res := <-chanres:
+		log.Println(res)
+	case <-time.After(secs):
+		c.Logger.Println("Execution is taking longer than expected.")
+		c.Logger.Println("Did you forget to daemonize this process?")
+		c.Dispatch(next_state, "")
+	}
 
 	/*
 	   def with_timeout(secs, next_state = nil, &blk)

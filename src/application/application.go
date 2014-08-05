@@ -19,7 +19,6 @@ import (
 )
 
 type Application struct {
-
 	Foreground bool
 
 	Name        string
