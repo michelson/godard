@@ -10,16 +10,14 @@ export GOBIN=
 
 function deps {
   echo "Fetching dependencies to $SCRIPTPATH..."
-  printf "###         (01/05)\r"
-    go get -u -t github.com/segmentio/go-log
-  printf "#####       (02/05)\r"
+  printf "#####       (02/06)\r"
     go get -u -t github.com/looplab/fsm
-  printf "#######     (03/05)\r"
+  printf "#######     (03/06)\r"
     go get -u -t bitbucket.org/kardianos/osext
-  printf "##########  (04/05)\r"
+  printf "##########  (04/06)\r"
     go get -u -t code.google.com/p/go.tools/cmd/cover
-  printf "############(05/05)\r"
-    go get -u -t github.com/hashicorp/go-syslog
+  printf "############(06/06)\r"
+    go get -u -t github.com/davecheney/profile
   printf "\n"
 }
 

@@ -359,7 +359,7 @@ func IsPidAlive(pid int) bool {
 		log.Printf("Failed to find process: %s\n", err)
 	} else {
 		err := process.Signal(syscall.Signal(0))
-		log.Printf("process.Signal on pid %d returned: %v\n", pid, err)
+		//log.Printf("process.Signal on pid %d returned: %v\n", pid, err)
 		if err == nil {
 			res = true
 		}

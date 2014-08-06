@@ -2,6 +2,7 @@ package application
 
 import (
 	//app "application"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -50,11 +51,11 @@ func (c *Controller) RunningApplications() []string {
 func (c *Controller) HandleCommand(application string, command string, args ...string) {
 	switch command {
 	case "status":
-		log.Println("status")
+		//log.Println("status")
 		c.send_to_daemon(application, command, args)
 	case "start", "stop", "restart", "unmonitor":
-		affected := c.send_to_daemon(application, command, args)
-		log.Println("AFFECTED:", affected)
+		c.send_to_daemon(application, command, args)
+		//log.Println("AFFECTED:", affected)
 		/*if len(affected) == 0 {
 			//log.Println("No processes affected")
 		} else {
@@ -116,7 +117,7 @@ func (c *Controller) send_to_daemon(application string, command string, args []s
 			res = response
 			os.Exit(8)
 		} else {
-			log.Println("sucess: ", response)
+			fmt.Println("out:", response)
 			res = response
 		}
 
@@ -135,7 +136,7 @@ func (c *Controller) cleanup_godard_directory() {
 
 	for _, app := range c.RunningApplications() {
 		pid, err := c.PidFor(app)
-		log.Println("CLEANUP:", pid, system.IsPidAlive(pid))
+		//log.Println("CLEANUP:", pid, system.IsPidAlive(pid))
 		if err != nil || !system.IsPidAlive(pid) {
 			pid_file := path.Join(c.PidsFile, app, app+".pid")
 			sock_file := path.Join(c.SocketsDir, app, app+".sock")
@@ -165,7 +166,7 @@ func (c *Controller) PidFor(app string) (int, error) {
 	var num_pid string
 	num_pid = string(dat)
 	int_str, _ := strconv.Atoi(num_pid)
-	log.Println("PID FOR ", pid_file, app, "IS", int_str)
+	//log.Println("PID FOR ", pid_file, app, "IS", int_str)
 	return int_str, err
 }
 

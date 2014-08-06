@@ -9,6 +9,7 @@ import (
 	//"github.com/barakmich/glog"
 	//"graph"
 	app "application"
+	//"github.com/davecheney/profile"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,12 +28,6 @@ var Attempts = flag.Int("attempts Count", 1, "Attempts for commands sent to the 
 var ApplicationCommands = []string{"status", "start", "stop", "restart", "unmonitor", "quit", "log"}
 
 func Usage() {
-	/*fmt.Println("Godard is monitoring tool.\n")
-	  fmt.Println("Usage:")
-	  fmt.Println("  godard COMMAND [flags]\n")
-	  fmt.Println("Commands:")
-	  fmt.Println("  init\tStart server , load config.")
-	  fmt.Println("\nFlags:")*/
 
 	fmt.Println("Usage:")
 	fmt.Println("  godard COMMAND [flags]\n")
@@ -54,6 +49,14 @@ func Usage() {
 
 func main() {
 
+	/*pprof_cfg := profile.Config{
+		MemProfile:     true,
+		NoShutdownHook: true, // do not hook SIGINT
+	}
+	// ensure profiling information is written to disk.
+	p := profile.Start(&pprof_cfg)
+	defer p.Stop() //must be called before the program exits to
+	*/
 	if os.Getenv("GOMAXPROCS") == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
@@ -114,7 +117,7 @@ func main() {
 		fmt.Println("ARGV SHIFT NAME:", controller_opts["application"])
 
 	} else if stringInSlice(cmd, ApplicationCommands) {
-		fmt.Println("OPT 3")
+		//fmt.Println("OPT 3")
 		if len(controller.RunningApplications()) == 1 {
 			// there is only one, let's just use that
 			controller_opts["application"] = controller.RunningApplications()[0]
@@ -146,7 +149,7 @@ func main() {
 	} else {
 		target := os.Args[len(os.Args)-1] //ARGV.shift
 		if controller_opts["application"] != nil {
-			fmt.Println("HANDLE COMMAND NOW:", controller_opts["application"], cmd, target)
+			//fmt.Println("HANDLE COMMAND NOW:", controller_opts["application"], cmd, target)
 			app := controller_opts["application"].(string)
 			controller.HandleCommand(app, cmd, target)
 		} else {

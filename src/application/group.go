@@ -39,10 +39,11 @@ func (c *Group) DetermineInitialState() {
 	}
 }
 
-func (c *Group) SendMethod(method string, process_name string) {
+func (c *Group) SendMethod(method string, process_name string) string {
 	//c.Logger.Println(c.Processes)
 	actions := []string{"start", "unmonitor", "stop", "restart"}
 	var affected []string
+	var response string
 
 	if stringInSlice(method, actions) {
 
@@ -79,14 +80,15 @@ func (c *Group) SendMethod(method string, process_name string) {
 		}
 
 	} else if method == "status" {
-		c.Status(process_name)
+		response = c.Status(process_name)
 	}
 
 	c.Logger.Println("SOME AFFECTED ARE:", affected)
+	return response
 }
 
 func (c *Group) Status(process_name string) string {
-	c.Logger.Println("OLA PROCESS NAME STATUS!!!!")
+	c.Logger.Println("STATUS PROCESS", process_name)
 
 	var lines []string
 	var prefix string

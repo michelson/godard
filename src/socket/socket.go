@@ -1,10 +1,13 @@
 package socket
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
 	"path"
+	"time"
 )
 
 //http://stackoverflow.com/questions/2886719/unix-sockets-in-go
@@ -99,7 +102,7 @@ func reader(r io.Reader) {
 
 func ClientCommand(base_dir string, name string, command string) (string, error) {
 
-	log.Println("PREPARE COMMAND TO SEND:", base_dir, name, command)
+	//log.Println("PREPARE COMMAND TO SEND:", base_dir, name, command)
 
 	c, err := net.Dial("unix", SocketPath(base_dir, name))
 
@@ -119,10 +122,13 @@ func ClientCommand(base_dir string, name string, command string) (string, error)
 		//break
 	}
 
-	msg := <-messages
+	//msg := <-messages
 	//println("RES!!", msg)
 
-	res := msg
+	//create another server who for client
+	os.Remove("/tmp/unixdomain")
+
+	res := ListenOutComing()
 
 	return res, nil
 }
@@ -153,4 +159,57 @@ func ClientCommand(base_dir string, name string, command string) (string, error)
 func SocketPath(base_dir string, name string) string {
 	s := path.Join(base_dir, "sock", name+".sock")
 	return s
+}
+
+func ListenOutComing() string {
+	//log.Println("UNIX LISTEN UNIX!!!")
+	//os.Remove("/tmp/unixdomaincli")
+
+	l, err := net.ListenUnix("unix", &net.UnixAddr{"/tmp/unixdomain", "unix"})
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove("/tmp/unixdomain")
+	res := ""
+	i := 0
+	for i <= MaxAttempts {
+		i += 1
+		//log.Println(i)
+		conn, err := l.AcceptUnix()
+		if err != nil {
+			panic(err)
+		}
+		var buf [1024]byte
+		n, err := conn.Read(buf[:])
+		if err != nil {
+			fmt.Println("ERR", err)
+			break
+		}
+		res = string(buf[:n])
+		//fmt.Printf("AA %s\n", string(buf[:n]));
+		//fmt.Printf("AAAIAI %s\n", string( res ));
+		conn.Close()
+		if len(res) > 0 {
+			break
+		}
+	}
+	return res
+}
+
+func SendOutComing(message string) {
+	time.Sleep(1 * time.Second)
+	defer os.Remove("/tmp/unixdomaincli")
+	t := "unix" // or "unixgram" or "unixpacket"
+	//laddr := net.UnixAddr{"/tmp/unixdomaincli", "unix"}
+	conn, err := net.DialUnix(t, nil, &net.UnixAddr{"/tmp/unixdomain", t})
+	if err != nil {
+		//log.Printf("ERROR in dial unix", err)
+		panic(err)
+	}
+
+	_, err = conn.Write([]byte(message))
+	if err != nil {
+		panic(err)
+	}
+	conn.Close()
 }

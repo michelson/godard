@@ -289,7 +289,8 @@ func (c *Application) sendToProcessOrGroup(method string, names ...string) {
 		process_name = group_name
 		for _, group := range c.Groups {
 			//Debug.Println("THIS GROUP IS TARGETING JUST BY PROC ,", group)
-			group.SendMethod(method, process_name)
+			res := group.SendMethod(method, process_name)
+			socket.SendOutComing(res)
 		}
 	} else {
 		//[]

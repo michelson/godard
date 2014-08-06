@@ -16,7 +16,10 @@ test:
 format:
 	./make.sh format
 
+install:
+	./make.sh deps ; ./make.sh build  ; cp ./godard /usr/local/bin/
+
 convey:
 	./bin/goconvey --depth=2
 
-	
+
